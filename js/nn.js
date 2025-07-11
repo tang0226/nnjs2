@@ -135,7 +135,6 @@ class NN {
       }
     }
 
-
     return this.a[this.numLayers - 1];
   }
 
