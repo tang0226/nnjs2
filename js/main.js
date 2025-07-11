@@ -14,13 +14,16 @@ function setCanvasDim(w, h) {
 setCanvasDim(1000, 1000);
 
 
-class Agent {
+class _2048Agent {
   constructor(obj) {
     this.nn = obj.nn;
     this.game = obj.game;
   }
 
   act() {
+    if (this.game.gameOver) {
+      return false;
+    }
     let a = this.nn.feedForward(this.game.grid.reduce((a = [], b) => a.concat(b)));
     let choices = [
       {choice: _2048.UP, val: a[0]},
@@ -39,29 +42,14 @@ class Agent {
       }
       i++;
     }
+    this.score = this.game.score;
+    if (game.gameOver) {
+      this.done = true;
+    }
+    return true;
   }
 }
 
-
-var nn = new NN({
-  layerSizes: [16, 10, 4],
-  af: [NN.LEAKY_RELU(), NN.SIGMOID],
-  wInit: {
-    method: NN.RANDOM,
-    range: 2,
-  },
-  bInit: {
-    method: NN.RANDOM,
-    range: 2,
-  },
-});
-
-
-var game = new _2048();
-var agent = new Agent({
-  nn: nn,
-  game: game,
-});
 
 var tileMargin = 10;
 var tileSize = 100;
@@ -94,11 +82,7 @@ var colors = {
 
 var fontSizeCoeffs = [0, 1, 1, 1, 1, 1, 1, 0.9, 0.9, 0.9, 0.75, 0.75, 0.75, 0.75, 0.6, 0.6, 0.6];
 
-
-var _canvasSideLength = tileSize * game.gridSize + tileMargin * (game.gridSize + 1);
-setCanvasDim(_canvasSideLength, _canvasSideLength);
-
-function draw() {
+function drawGame(game) {
   ctx.clearRect(0, 0, width, height);
 
   ctx.fillStyle = colors.boardBorder;
@@ -130,13 +114,75 @@ function draw() {
 
   document.querySelector("#score").innerText = game.score;
   document.querySelector("#turns").innerText = game.turns;
-
-
-  console.log(
-    nn.backpropagate([1, 0, 0, 0], game.grid.reduce((a = [], b) => a.concat(b)))
-  );
 }
 
+
+var nn = new NN({
+  layerSizes: [16, 32, 32, 4],
+  af: [NN.LEAKY_RELU(), NN.SIGMOID],
+  wInit: {
+    method: NN.RANDOM,
+    range: 2,
+  },
+  bInit: {
+    method: NN.RANDOM,
+    range: 2,
+  },
+});
+
+var game = new _2048({
+  gridSize: 10
+});
+
+var agent = new _2048Agent({
+  nn: nn,
+  game: game,
+});
+
+
+var _canvasSideLength = tileSize * game.gridSize + tileMargin * (game.gridSize + 1);
+setCanvasDim(_canvasSideLength, _canvasSideLength);
+
+
+function draw() {
+  for (let i = 0; i < 100; i++) {
+    if (agent.act()) {
+      drawGame(game);
+    }
+    else {
+      document.querySelector("#alert").innerText = "Game Over!";
+      return false;
+    }
+  }
+
+  setTimeout(draw, 0);
+}
+
+document.querySelector("#restart").addEventListener("click", () => {
+  if (game.gameOver) {
+    nn = new NN({
+      layerSizes: [16, 32, 32, 4],
+      af: [NN.LEAKY_RELU(), NN.SIGMOID],
+      wInit: {
+        method: NN.RANDOM,
+        range: 2,
+      },
+      bInit: {
+        method: NN.RANDOM,
+        range: 2,
+      },
+    });
+    game.reset();
+    agent = new _2048Agent({
+      nn: nn,
+      game: game,
+    });
+    document.querySelector("#alert").innerText = "";
+    draw();
+  }
+});
+
+/*
 document.addEventListener("keydown", (event) => {
   if (!game.gameOver) {
     switch (event.key) {
@@ -171,6 +217,6 @@ document.addEventListener("keydown", (event) => {
   }
 
 });
-
+*/
 
 draw();
