@@ -1,5 +1,19 @@
 class NN {
   constructor(obj) {
+    if (obj.nn) {
+      let nn = obj.nn;
+      this.layerSizes = [...nn.layerSizes];
+      this.numLayers = nn.numLayers;
+      this.inputLayerSize = nn.inputLayerSize;
+      this.outputLayerSize = nn.outputLayerSize;
+
+      this.activationFunctions = this.af = [...nn.af];
+      this.weights = this.w = nn.w.map((arr2d) => NN.copy2d(arr2d));
+      this.biases = this.b = copy2d(nn.b);
+      this.neuronOutputs = this.z = copy2d(nn.z);
+      this.activations = this.a = copy2d(nn.a);
+      return;
+    }
 
     // layers
     this.layerSizes = obj.layerSizes;
@@ -101,7 +115,7 @@ class NN {
     }
 
     // outputs (z = sum(prevA * weight) + bias; a = activationFunc(z))
-    this.outputs = this.z = [];
+    this.neuronOutputs = this.z = [];
     for (let i = 0; i < this.numLayers; i++) {
       let arr = new Array(this.layerSizes[i]);
       arr.fill(0);
@@ -185,5 +199,9 @@ class NN {
       res.push(arr);
     }
     return res;
+  }
+
+  static copy2d(arr2d) {
+    return arr2d.map((arr) => [...arr]);
   }
 }

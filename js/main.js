@@ -13,8 +13,38 @@ function setCanvasDim(w, h) {
 
 setCanvasDim(1000, 1000);
 
+
+class Agent {
+  constructor(obj) {
+    this.nn = obj.nn;
+    this.game = obj.game;
+  }
+
+  act() {
+    let a = this.nn.feedForward(this.game.grid.reduce((a = [], b) => a.concat(b)));
+    let choices = [
+      {choice: _2048.UP, val: a[0]},
+      {choice: _2048.RIGHT, val: a[1]},
+      {choice: _2048.DOWN, val: a[2]},
+      {choice: _2048.LEFT, val: a[3]},
+    ];
+    
+    choices.sort((a, b) => a.val < b.val ? 1 : (b.val < a.val ? -1 : 0));
+
+    let i = 0;
+    while (i < 4) {
+      if (this.game.move(choices[i].choice) != -1) {
+        console.log(choices[i].choice);
+        break;
+      }
+      i++;
+    }
+  }
+}
+
+
 var nn = new NN({
-  layerSizes: [4, 6, 3, 4],
+  layerSizes: [16, 48, 48, 4],
   af: [NN.RELU, NN.SIGMOID],
   wInit: {
     method: NN.RANDOM,
@@ -26,10 +56,12 @@ var nn = new NN({
   },
 });
 
-console.log(nn);
-console.log(nn.feedForward([2, 3, 4, 5]));
 
 var game = new _2048();
+var agent = new Agent({
+  nn: nn,
+  game: game,
+});
 
 var tileMargin = 10;
 var tileSize = 100;
@@ -123,6 +155,10 @@ document.addEventListener("keydown", (event) => {
           draw();
         }
         break;
+      case " ":
+        agent.act();
+        draw();
+        break;
     }
     if (game.gameOver) {
       document.querySelector("#alert").innerText = "Game Over!";
@@ -131,11 +167,5 @@ document.addEventListener("keydown", (event) => {
 
 });
 
-game.grid = [
-  [0, 1, 2, 3],
-  [4, 5, 6, 7],
-  [8, 9, 10, 11],
-  [12, 13, 14, 15]
-];
 
 draw();
