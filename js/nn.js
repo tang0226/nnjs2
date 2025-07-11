@@ -260,6 +260,19 @@ class NN {
     name: "relu"
   };
 
+  static LEAKY_RELU(alpha = 0.01) {
+    return {
+      alpha: alpha,
+      func(x) {
+        return Math.max(x, this.alpha * x);
+      },
+      dFunc(x) {
+        return x > 0 ? 1 : this.alpha;
+      },
+      name: "leaky relu"
+    };
+  }
+
   static zero2d(a, b) {
     let res = [];
     for (let i = 0; i < a; i++) {

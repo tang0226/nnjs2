@@ -44,8 +44,8 @@ class Agent {
 
 
 var nn = new NN({
-  layerSizes: [16, 48, 48, 4],
-  af: [NN.RELU, NN.SIGMOID],
+  layerSizes: [16, 10, 4],
+  af: [NN.LEAKY_RELU(), NN.SIGMOID],
   wInit: {
     method: NN.RANDOM,
     range: 2,
