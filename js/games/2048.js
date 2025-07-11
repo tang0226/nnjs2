@@ -43,7 +43,7 @@ class _2048 {
     this.replay.push({spawn: [...coords, tile]});
   }
 
-  move(dir) {
+  move(dir, spawn = true) {
     if (this.gameOver) return -1;
 
     let turnScore = 0, ortho, orthoDir;
@@ -127,14 +127,16 @@ class _2048 {
     // Add move to replay
     this.replay.push({move: dir});
 
-    // Spawn another tile
-    this.randomSpawn();
-    
-    this.score += turnScore;
-    this.turns++;
+    if (spawn) {
+      // Spawn another tile
+      this.randomSpawn();
+      
+      this.score += turnScore;
+      this.turns++;
 
-    if (this.checkGameEnd()) {
-      this.gameOver = true;
+      if (this.checkGameEnd()) {
+        this.gameOver = true;
+      }
     }
 
     return turnScore;
