@@ -37,7 +37,6 @@ class _2048Agent {
     let i = 0;
     while (i < 4) {
       if (this.game.move(choices[i].choice) != -1) {
-        console.log(choices[i].choice);
         break;
       }
       i++;
@@ -53,7 +52,6 @@ class _2048Agent {
 
 var tileMargin = 10;
 var tileSize = 100;
-var tileFontSize = tileSize * 0.5;
 var colors = {
   boardBorder: "#b9ae9f",
   tiles: [
@@ -80,7 +78,8 @@ var colors = {
   otherTileFont: "#ffffff",
 };
 
-var fontSizeCoeffs = [0, 1, 1, 1, 1, 1, 1, 0.9, 0.9, 0.9, 0.75, 0.75, 0.75, 0.75, 0.6, 0.6, 0.6];
+var fontSizeCoeffs = [0, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.4, 0.4, 0.4, 0.35, 0.35, 0.35, 0.35, 0.3, 0.3, 0.3, 0.275];
+
 
 function drawGame(game) {
   ctx.clearRect(0, 0, width, height);
@@ -98,7 +97,7 @@ function drawGame(game) {
 
       if (tile > 0) {
         ctx.fillStyle = (tile == 1 || tile == 2) ? colors.twoFourFont : colors.otherTileFont;
-        ctx.font = `${tileFontSize * fontSizeCoeffs[tile]}px Arial`;
+        ctx.font = `${tileSize * fontSizeCoeffs[tile]}px Arial`;
         let text = _2048.POW2[tile].toString();
         let textMetrics = ctx.measureText(text);
         let textWidth = textMetrics.width;
@@ -131,7 +130,7 @@ var nn = new NN({
 });
 
 var game = new _2048({
-  gridSize: 10
+  gridSize: 4
 });
 
 var agent = new _2048Agent({
@@ -182,6 +181,8 @@ document.querySelector("#restart").addEventListener("click", () => {
   }
 });
 
+draw();
+
 /*
 document.addEventListener("keydown", (event) => {
   if (!game.gameOver) {
@@ -218,5 +219,3 @@ document.addEventListener("keydown", (event) => {
 
 });
 */
-
-draw();
