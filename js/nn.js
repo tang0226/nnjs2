@@ -9,9 +9,13 @@ class NN {
 
       this.activationFunctions = this.af = [...nn.af];
       this.weights = this.w = nn.w.map((arr2d) => NN.copy2d(arr2d));
+      this.weightDerivatives = this.dw = nn.dw.map((arr2d) => NN.copy2d(arr2d));
       this.biases = this.b = copy2d(nn.b);
+      this.biasDerivatives = this.db = copy2d(nn.db);
       this.neuronOutputs = this.z = copy2d(nn.z);
+      this.neuronOutputDerivatives = this.dz = copy2d(nn.dz);
       this.activations = this.a = copy2d(nn.a);
+      this.activationDerivatives = this.da = copy2d(nn.da);
       return;
     }
 
@@ -56,6 +60,7 @@ class NN {
 
     // Weights [layerFrom][nTo][nFrom]
     this.weights = this.w = [];
+    this.weightDerivatives = this.dw = [];
 
     if (obj.wInit) {
       if (obj.wInit.method) {
@@ -79,11 +84,13 @@ class NN {
     }
 
     for (let i = 0; i < this.numLayers - 1; i++) {
-      this.weights.push(NN.init2d(this.layerSizes[i + 1], this.layerSizes[i], this.wInitFunc));
+      this.w.push(NN.init2d(this.layerSizes[i + 1], this.layerSizes[i], this.wInitFunc));
+      this.dw.push(NN.init2d(this.layerSizes[i + 1], this.layerSizes[i], () => 0));
     }
 
     // Biases [nonInputLayer][n]
     this.biases = this.b = [];
+    this.biasDerivatives = this.db = [];
 
     if (obj.bInit) {
       if (obj.bInit.method) {
@@ -111,23 +118,27 @@ class NN {
       for (let j = 0; j < this.layerSizes[i + 1]; j++) {
         l.push(this.bInitFunc());
       }
-      this.biases.push(l);
+      this.b.push(l);
+
+      let dl = new Array(this.layerSizes[i + 1]);
+      dl.fill(0);
+      this.db.push(dl);
     }
 
     // outputs (z = sum(prevA * weight) + bias; a = activationFunc(z))
     this.neuronOutputs = this.z = [];
+    this.neuronOutputDerivatives = this.dz = [];
     for (let i = 0; i < this.numLayers; i++) {
-      let arr = new Array(this.layerSizes[i]);
-      arr.fill(0);
-      this.z.push(arr);
+      this.z.push((new Array(this.layerSizes[i])).fill(0));
+      this.dz.push((new Array(this.layerSizes[i])).fill(0));
     }
 
     // Activations [nonInputLayer][n]
     this.activations = this.a = [];
+    this.activationDerivatives = this.da = [];
     for (let i = 0; i < this.numLayers; i++) {
-      let arr = new Array(this.layerSizes[i]);
-      arr.fill(0);
-      this.a.push(arr);
+      this.a.push((new Array(this.layerSizes[i])).fill(0));
+      this.da.push((new Array(this.layerSizes[i])).fill(0));
     }
   }
 
@@ -150,6 +161,12 @@ class NN {
     }
 
     return this.a[this.numLayers - 1];
+  }
+
+  backpropagate(y, inputs = []) {
+    if (inputs.length) {
+      this.feedForward(inputs);
+    }
   }
 
 
