@@ -27,3 +27,4 @@ var nn = new NN({
 });
 
 console.log(nn);
+console.log(nn.feedForward([2, 3, 4, 5]));

@@ -7,9 +7,9 @@ class NN {
       throw new Error("ValueError: Network cannot have fewer than 2 layers");
     }
 
-    this.numLayers = obj.numLayers;
+    this.numLayers = obj.layerSizes.length;
     this.inputLayerSize = obj.layerSizes[0];
-    this.outputLayerSize = obj.layerSizes[obj.numLayers - 1];
+    this.outputLayerSize = obj.layerSizes[this.numLayers - 1];
 
     // Activation functions
     if (obj.activationFunctions || obj.af) {
@@ -21,10 +21,16 @@ class NN {
         this.af = af;
       }
       else {
+        // [hidden layers, output layer]
         if (af.length == 2) {
           this.af = new Array(this.numLayers - 2);
-          this.af.fill(af[0], 0, this.numLayers - 2);
+          this.af.fill(af[0]);
           this.af[this.numLayers - 2] = af[1];
+        }
+        // [all layers]
+        else if (af.length == 1) {
+          this.af = new Array(this.numLayers - 1);
+          this.af.fill(af[0]);
         }
         else {
           throw new Error("ValueError: Wrong number of activation functions");
@@ -96,7 +102,7 @@ class NN {
 
     // outputs (z = sum(prevA * weight) + bias; a = activationFunc(z))
     this.outputs = this.z = [];
-    for (let i = 1; i < this.numLayers; i++) {
+    for (let i = 0; i < this.numLayers; i++) {
       let arr = new Array(this.layerSizes[i]);
       arr.fill(0);
       this.z.push(arr);
@@ -104,15 +110,36 @@ class NN {
 
     // Activations [nonInputLayer][n]
     this.activations = this.a = [];
-    for (let i = 1; i < this.numLayers; i++) {
+    for (let i = 0; i < this.numLayers; i++) {
       let arr = new Array(this.layerSizes[i]);
       arr.fill(0);
       this.a.push(arr);
     }
-
-    this.inputActivations = this.inputs = this.a0 = new Array(this.layerSizes[0]);
-    this.inputActivations.fill(0);
   }
+
+
+  feedForward(inputs) {
+    for (let i = 0; i < this.layerSizes[0]; i++) {
+      this.a[0][i] = inputs[i];
+    }
+
+    for (let lFrom = 0; lFrom < this.numLayers - 1; lFrom++) {
+      for (let iTo = 0; iTo < this.layerSizes[lFrom + 1]; iTo++) {
+        let ws = 0;
+        for (let iFrom = 0; iFrom < this.layerSizes[lFrom]; iFrom++) {
+          ws += this.a[lFrom][iFrom] * this.w[lFrom][iTo][iFrom];
+        }
+        ws += this.b[lFrom][iTo];
+        this.z[lFrom + 1][iTo] = ws;
+        this.a[lFrom + 1][iTo] = this.af[lFrom].func(ws);
+      }
+    }
+
+
+    return this.a[this.numLayers - 1];
+  }
+
+
 
   static RANDOM = "RANDOM";
   static XAVIER = "XAVIER";
