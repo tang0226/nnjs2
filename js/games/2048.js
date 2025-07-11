@@ -44,6 +44,8 @@ class _2048 {
   }
 
   move(dir) {
+    if (this.gameOver) return -1;
+
     let turnScore = 0, ortho, orthoDir;
 
     switch (dir) {
@@ -125,10 +127,6 @@ class _2048 {
     // Spawn another tile
     this.randomSpawn();
     
-    for (let i of this.grid) {
-      console.log(i);
-    }
-
     this.score += turnScore;
     this.turns++;
 
@@ -137,6 +135,22 @@ class _2048 {
     }
 
     return turnScore;
+  }
+
+  up() {
+    return this.move(this.constructor.UP);
+  }
+
+  down() {
+    return this.move(this.constructor.DOWN);
+  }
+
+  right() {
+    return this.move(this.constructor.RIGHT);
+  }
+
+  left() {
+    return this.move(this.constructor.LEFT);
   }
 
   checkGameEnd() {
