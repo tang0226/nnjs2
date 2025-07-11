@@ -9,12 +9,15 @@ class _2048 {
       this.grid.push(new Array(this.gridSize));
     }
 
+    this.replay = [];
+
     this.reset();
   }
 
   reset() {
     this.score = 0;
     this.turns = 0;
+    this.replay = [];
     this.gameOver = false;
 
     for (let row of this.grid) {
@@ -35,12 +38,9 @@ class _2048 {
     }
 
     let coords = open[Math.floor(Math.random() * open.length)];
-    if (Math.random() < this.fourSpawnRate) {
-      this.grid[coords[1]][coords[0]] = 2;
-    }
-    else {
-      this.grid[coords[1]][coords[0]] = 1;
-    }
+    let tile = Math.random() < this.fourSpawnRate ? 2 : 1;
+    this.grid[coords[1]][coords[0]] = tile;
+    this.replay.push({spawn: [...coords, tile]});
   }
 
   move(dir) {
@@ -123,6 +123,9 @@ class _2048 {
     if (!action) {
       return -1;
     }
+
+    // Add move to replay
+    this.replay.push({move: dir});
 
     // Spawn another tile
     this.randomSpawn();

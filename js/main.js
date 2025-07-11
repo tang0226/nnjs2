@@ -42,6 +42,7 @@ class _2048Agent {
       i++;
     }
     this.score = this.game.score;
+    this.turns = this.game.turns;
     if (game.gameOver) {
       this.done = true;
     }
@@ -142,16 +143,63 @@ var agent = new _2048Agent({
 var _canvasSideLength = tileSize * game.gridSize + tileMargin * (game.gridSize + 1);
 setCanvasDim(_canvasSideLength, _canvasSideLength);
 
+var simulationSpeed = 100;
+
+var gamesPlayed = 0;
+
+var gameAvgCount = 10;
+var scoreAvgTotal = 0;
+var scoreAvg;
+var diff;
+var learningRate = 0.1;
+
+var scores = [];
+var state = "agent playing";
+
 
 function draw() {
-  for (let i = 0; i < 100; i++) {
-    if (agent.act()) {
-      drawGame(game);
+  if (state == "agent playing") {
+    for (let i = 0; i < simulationSpeed; i++) {
+      if (agent.act()) {
+        drawGame(game);
+      }
+      else {
+        scores.push(game.score);
+        gamesPlayed++;
+
+        if (gamesPlayed > gameAvgCount) {
+          // Train
+          scoreAvg = scoreAvgTotal / gameAvgCount;
+          diff = game.score - scoreAvg;
+          state = "agent training";
+
+          scoreAvgTotal += game.score;
+          scoreAvgTotal -= scores[gamesPlayed - gameAvgCount];
+        }
+        else {
+          // Get more game data first
+
+          scoreAvgTotal += game.score;
+
+          game.reset();
+        }
+
+        break;
+      }
+    }
+  }
+  else if (state == "agent training") {
+    console.log(scores, scoreAvg, diff);
+    
+    // Is this game's score better than the average of the last few?
+    if (diff > 0) {
+      // If so, encourage the behavior with gradient descent
+      
     }
     else {
-      document.querySelector("#alert").innerText = "Game Over!";
-      return false;
+      // 
     }
+    return;
   }
 
   setTimeout(draw, 0);
@@ -160,7 +208,7 @@ function draw() {
 document.querySelector("#restart").addEventListener("click", () => {
   if (game.gameOver) {
     nn = new NN({
-      layerSizes: [16, 32, 32, 4],
+      layerSizes: [16, 48, 32, 4],
       af: [NN.LEAKY_RELU(), NN.SIGMOID],
       wInit: {
         method: NN.RANDOM,

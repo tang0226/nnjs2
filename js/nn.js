@@ -298,4 +298,22 @@ class NN {
   static copy2d(arr2d) {
     return arr2d.map((arr) => [...arr]);
   }
+
+  static add2d(a, b) {
+    return a.map((arr, i) => arr.map(
+      (n, j) => n + b[i][j]
+    ));
+  }
+
+  static add3d(a, b) {
+    return a.map((arr, i) => NN.add2d(arr, b[i]));
+  }
+
+  static mulScalar2d(arr, n) {
+    return arr.map((a) => a.map((x) => x * n));
+  }
+
+  static mulScalar3d(arr, n) {
+    return arr.map((a) => a.map((b) => b.map((x) => x * n)));
+  }
 }
