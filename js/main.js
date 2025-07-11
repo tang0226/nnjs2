@@ -28,7 +28,7 @@ class Agent {
       {choice: _2048.DOWN, val: a[2]},
       {choice: _2048.LEFT, val: a[3]},
     ];
-    
+
     choices.sort((a, b) => a.val < b.val ? 1 : (b.val < a.val ? -1 : 0));
 
     let i = 0;
@@ -130,6 +130,11 @@ function draw() {
 
   document.querySelector("#score").innerText = game.score;
   document.querySelector("#turns").innerText = game.turns;
+
+
+  console.log(
+    nn.backpropagate([1, 0, 0, 0], game.grid.reduce((a = [], b) => a.concat(b)))
+  );
 }
 
 document.addEventListener("keydown", (event) => {

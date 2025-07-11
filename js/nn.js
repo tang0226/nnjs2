@@ -128,7 +128,7 @@ class NN {
     // outputs (z = sum(prevA * weight) + bias; a = activationFunc(z))
     this.neuronOutputs = this.z = [];
     this.neuronOutputDerivatives = this.dz = [];
-    for (let i = 0; i < this.numLayers; i++) {
+    for (let i = 0; i < this.numLayers - 1; i++) {
       this.z.push((new Array(this.layerSizes[i])).fill(0));
       this.dz.push((new Array(this.layerSizes[i])).fill(0));
     }
@@ -138,7 +138,12 @@ class NN {
     this.activationDerivatives = this.da = [];
     for (let i = 0; i < this.numLayers; i++) {
       this.a.push((new Array(this.layerSizes[i])).fill(0));
-      this.da.push((new Array(this.layerSizes[i])).fill(0));
+
+      // da will not apply to the input layer; a is the only array with numLayers elements;
+      // All others have numLayers - 1
+      if (i != 0) {
+        this.da.push((new Array(this.layerSizes[i])).fill(0));
+      }
     }
   }
 
@@ -155,7 +160,7 @@ class NN {
           ws += this.a[lFrom][iFrom] * this.w[lFrom][iTo][iFrom];
         }
         ws += this.b[lFrom][iTo];
-        this.z[lFrom + 1][iTo] = ws;
+        this.z[lFrom][iTo] = ws;
         this.a[lFrom + 1][iTo] = this.af[lFrom].func(ws);
       }
     }
@@ -167,6 +172,65 @@ class NN {
     if (inputs.length) {
       this.feedForward(inputs);
     }
+
+    // LAST LAYER
+
+    // Last layer da (uses the loss function (y - a) ^ 2)
+    for (let i = 0; i < this.outputLayerSize; i++) {
+      this.da[this.numLayers - 2][i] = 2 * (this.a[this.numLayers - 1][i] - y[i]);
+    }
+
+    // Last layer dz, db, and dw
+    let li = this.numLayers - 2;
+    for (let iTo = 0; iTo < this.outputLayerSize; iTo++) {
+      // dz value for this neuron
+      let _dz = this.da[li][iTo] * this.af[li].dFunc(this.z[li][iTo]);
+      this.dz[li][iTo] = _dz;
+      
+      // b is a linear constant in z, so db = dz
+      this.db[li][iTo] = _dz
+
+      // dw values for this neuron
+      for (let iFrom = 0; iFrom < this.layerSizes[li - 1]; iFrom++) {
+        this.dw[li][iTo][iFrom] = _dz * this.a[li][iFrom];
+      }
+    }
+
+    li--;
+
+    // HIDDEN LAYERS
+
+    for (; li > -1; li--) {
+      for (let iTo = 0; iTo < this.layerSizes[li + 1]; iTo++) {
+        // da
+        // Loop through neurons that the current neuron signals to
+        let _da = 0;
+        for (let i = 0; i < this.layerSizes[li + 2]; i++) {
+          _da += this.dz[li + 1][i] * this.w[li + 1][i][iTo];
+        }
+        this.da[li][iTo] = _da;
+
+        // dz and db
+        let _dz = _da * this.af[li].dFunc(this.z[li][iTo]);
+        this.dz[li][iTo] = _dz;
+        this.db[li][iTo] = _dz;
+
+        // dw:
+        // Here, technically, this.layerSizes[li] and this.a[li] are using
+        // the index (li - 1 + 1), since we are going back a layer, but
+        // these arrays include the input layer, so indices must be shifted forward
+        for (let iFrom = 0; iFrom < this.layerSizes[li]; iFrom++) {
+          this.dw[li][iTo][iFrom] = _dz * this.a[li][iFrom];
+        }
+      }
+    }
+
+    return {
+      w: this.dw,
+      b: this.db,
+      z: this.dz,
+      a: this.da
+    };
   }
 
 
