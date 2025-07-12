@@ -24,7 +24,7 @@ class _2048Agent {
     if (this.game.gameOver) {
       return false;
     }
-    let a = this.nn.feedForward(this.game.grid.reduce((a = [], b) => a.concat(b)));
+    let a = this.nn.feedForward(formatGrid(this.game.grid));
     let choices = [
       {choice: _2048.UP, val: a[0]},
       {choice: _2048.RIGHT, val: a[1]},
@@ -118,15 +118,15 @@ function drawGame(game) {
 
 
 var nn = new NN({
-  layerSizes: [16, 64, 4],
-  af: [NN.LEAKY_RELU(), NN.SIGMOID],
+  layerSizes: [256, 32, 4],
+  af: [NN.SIGMOID, NN.SIGMOID],
   wInit: {
     method: NN.RANDOM,
-    range: 1,
+    range: 3,
   },
   bInit: {
     method: NN.RANDOM,
-    range: 1,
+    range: 3,
   },
 });
 
@@ -140,6 +140,21 @@ var agent = new _2048Agent({
 });
 
 
+function formatGridOneHot(grid) {
+  let inputs = (new Array(256)).fill(0);
+  for (let i = 0; i < 16; i++) {
+    inputs[i * 16 + grid[Math.floor(i / 4)][i % 4] - 1] = 1;
+  }
+  return inputs;
+}
+
+function formatGridValue(grid) {
+  return grid.reduce((a = [], b) => a.concat(b));
+}
+
+var formatGrid = formatGridOneHot;
+
+
 var _canvasSideLength = tileSize * game.gridSize + tileMargin * (game.gridSize + 1);
 setCanvasDim(_canvasSideLength, _canvasSideLength);
 
@@ -147,11 +162,11 @@ var simulationSpeed = 100;
 
 var gamesPlayed = 0;
 
-var gameAvgCount = 100;
+var gameAvgCount = 300;
 var scoreAvgTotal = 0;
 var scoreAvg;
 var diff;
-var learningRate = 0.5;
+var learningRate = 0.1;
 
 var scores = [];
 var state = "agent playing";
@@ -184,31 +199,27 @@ function draw() {
     }
   }
   else if (state == "agent training") {
-    console.log(game.score, game.turns, scoreAvg, diff);
+    console.log(scoreAvg, diff, game.score, game.turns);
     
-    // Is this game's score better than the average of the last few?
-    if (diff > 0) {
-      // If so, encourage the behavior with gradient descent
-      var wSum, bSum;
-      let replay = new _2048({
-        gridSize: game.gridSize,
-        fourSpawnRate: game.fourSpawnRate,
-        initialSpawns: game.initialSpawns
-      });
-      replay.grid = [
-        [0, 0, 0, 0],
-        [0, 0, 0, 0],
-        [0, 0, 0, 0],
-        [0, 0, 0, 0]
-      ];
-      
-      for (let event of game.replay) {
-        if (event.spawn) {
-          let spawn = event.spawn;
-          replay.grid[spawn[1]][spawn[0]] = spawn[2];
-        }
-        else if (event.move) {
-          let y = [0, 0, 0, 0];
+    var wSum, bSum;
+    let replay = new _2048({
+      gridSize: game.gridSize,
+      fourSpawnRate: game.fourSpawnRate,
+      initialSpawns: game.initialSpawns
+    });
+    replay.grid = replay.grid.map((x) => (new Array(game.gridSize)).fill(0));
+    
+    for (let event of game.replay) {
+      if (event.spawn) {
+        let spawn = event.spawn;
+        replay.grid[spawn[1]][spawn[0]] = spawn[2];
+      }
+      else if (event.move) {
+        let y, bp;
+        // Did the ai do well or poorly?
+        if (game.score > scoreAvg) {
+          // Well = reinforce actions taken
+          y = [0, 0, 0, 0];
           switch (event.move) {
             case _2048.UP:
               y[0] = 1;
@@ -223,31 +234,50 @@ function draw() {
               y[3] = 1;
               break;
           }
-          let bp = agent.nn.backpropagate(y, replay.grid.reduce((a = [], b) => a.concat(b)));
-
-          if (wSum) {
-            wSum = NN.add3d(wSum, bp.w);
-          }
-          else {
-            wSum = bp.w;
-          }
-
-          if (bSum) {
-            bSum = NN.add2d(bSum, bp.b);
-          }
-          else {
-            bSum = bp.b;
-          }
-          replay.move(event.move, false);
+          bp = agent.nn.backpropagate(y, formatGrid(replay.grid));
         }
+        else {
+          y = agent.nn.feedForward(formatGrid(replay.grid));
+          // Poorly = discourage actions taken
+          switch (event.move) {
+            case _2048.UP:
+              y[0] = 0;
+              break;
+            case _2048.RIGHT:
+              y[1] = 0;
+              break;
+            case _2048.DOWN:
+              y[2] = 0;
+              break;
+            case _2048.LEFT:
+              y[3] = 0;
+              break;
+          }
+          bp = agent.nn.backpropagate(y);
+        }
+
+        if (wSum) {
+          wSum = NN.add3d(wSum, bp.w);
+        }
+        else {
+          wSum = bp.w;
+        }
+
+        if (bSum) {
+          bSum = NN.add2d(bSum, bp.b);
+        }
+        else {
+          bSum = bp.b;
+        }
+        replay.move(event.move, false);
       }
-
-      wSum = NN.mulScalar3d(wSum, -learningRate / game.turns);
-      bSum = NN.mulScalar2d(bSum, -learningRate / game.turns);
-
-      agent.nn.w = NN.add3d(wSum, agent.nn.w);
-      agent.nn.b = NN.add2d(wSum, agent.nn.b);
     }
+
+    wSum = NN.mulScalar3d(wSum, -learningRate / game.turns);
+    bSum = NN.mulScalar2d(bSum, -learningRate / game.turns);
+
+    agent.nn.w = NN.add3d(wSum, agent.nn.w);
+    agent.nn.b = NN.add2d(wSum, agent.nn.b);
 
     //return;
     state = "agent playing"
