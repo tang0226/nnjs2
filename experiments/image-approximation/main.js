@@ -128,7 +128,7 @@ stopButton.addEventListener("click", () => {
 
 function createAgentNN() {
   return new NN({
-    layerSizes: [2, 50, 20, 3],
+    layerSizes: [2, 300, 3],
     activationFunctions: [NN.LEAKY_RELU(0.1), NN.SIGMOID],
     wInit: {
       method: NN.RANDOM,
@@ -163,7 +163,8 @@ var agent = {
       this.dbTotal.push((new Array(this.nn.layerSizes[l + 1])).fill(0));
     }
     
-    let data = new Uint8ClampedArray(4 * width * height);
+    let imgData = eCtx.createImageData(width, height);
+    let data = imgData.data;
     let i = 0;
     for (let x = 0; x < width; x++) {
       let sx = (x / width - 0.5) * this.inputScale;
@@ -186,7 +187,7 @@ var agent = {
         i += 4;
       }
     }
-    eCtx.putImageData(new ImageData(data, width, height), 0, 0);
+    eCtx.putImageData(imgData, 0, 0);
   },
 
   // Updates network based on derivative totals and learning rate
