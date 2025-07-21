@@ -2,20 +2,42 @@ class NN {
   constructor(obj) {
     if (obj.nn) {
       let nn = obj.nn;
+      
       this.layerSizes = [...nn.layerSizes];
       this.numLayers = nn.numLayers;
+
       this.inputLayerSize = nn.inputLayerSize;
       this.outputLayerSize = nn.outputLayerSize;
 
-      this.activationFunctions = this.af = [...nn.af];
+      this.activationFunctions = this.af = [];
+      nn.activationFunctions.forEach((af) => {
+        switch(af.name) {
+          case "sigmoid":
+            this.af.push(NN.SIGMOID);
+            break;
+          case "relu":
+            this.af.push(NN.RELU);
+            break;
+          case "leaky relu":
+            this.af.push(NN.LEAKY_RELU(af.alpha));
+            break;
+        }
+      });
+
       this.weights = this.w = NN.copyW(nn.w);
       this.weightDerivatives = this.dw = NN.copyW(nn.dw);
+      this.dwTotal = this.zeroWeights();
+
       this.biases = this.b = NN.copy2d(nn.b);
       this.biasDerivatives = this.db = NN.copy2d(nn.db);
+      this.dbTotal = this.zeroBiases();
+      
       this.neuronOutputs = this.z = NN.copy2d(nn.z);
       this.neuronOutputDerivatives = this.dz = NN.copy2d(nn.dz);
+
       this.activations = this.a = NN.copy2d(nn.a);
       this.activationDerivatives = this.da = NN.copy2d(nn.da);
+
       return;
     }
 
@@ -242,9 +264,22 @@ class NN {
     };
   }
 
+  applyChanges(changes, coeff) {
+    let scaledChanges = {
+      w: NN.mulScalar3d(changes.w, coeff),
+      b: NN.mulScalar2d(changes.b, coeff),
+    };
+    this.w = NN.add3d(this.w, scaledChanges.w);
+    this.b = NN.add2d(this.b, scaledChanges.b);
+
+    return scaledChanges;
+  }
+
   endEpoch(learningRate) {
-    this.w = NN.add3d(this.w, NN.mulScalar3d(this.dwTotal, -learningRate / this.trials));
-    this.b = NN.add2d(this.b, NN.mulScalar2d(this.dbTotal, -learningRate / this.trials));
+    this.applyChanges(
+      { w: this.dwTotal, b: this.dbTotal },
+      -learningRate / this.trials
+    );
 
     this.dwTotal = this.zeroWeights();
     this.dbTotal = this.zeroBiases();
