@@ -136,6 +136,9 @@ function updateActivationFunction() {
     case "sigmoid":
       activationFunction = NN.SIGMOID;
       break;
+    case "tanh":
+      activationFunction = NN.TANH;
+      break;
   }
 }
 

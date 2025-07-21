@@ -341,6 +341,17 @@ class NN {
     name: "sigmoid"
   };
 
+  static TANH = {
+    func(x) {
+      return Math.tanh(x);
+    },
+    dFunc(x) {
+      let s = this.func(x);
+      return 1 - s * s;
+    },
+    name: "tanh"
+  };
+
   static RELU = {
     func(x) {
       return Math.max(0, x);
@@ -362,7 +373,7 @@ class NN {
       },
       name: "leaky relu"
     };
-  }
+  };
 
   static zero2d(a, b) {
     let res = [];
