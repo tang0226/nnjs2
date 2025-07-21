@@ -128,7 +128,7 @@ stopButton.addEventListener("click", () => {
 
 function createAgentNN() {
   return new NN({
-    layerSizes: [2, 300, 3],
+    layerSizes: [2, 40, 20, 3],
     activationFunctions: [NN.LEAKY_RELU(0.1), NN.SIGMOID],
     wInit: {
       method: NN.RANDOM,
