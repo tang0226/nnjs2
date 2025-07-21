@@ -178,6 +178,7 @@ hiddenLayersInput.addEventListener("change", () => {
     // update the layers and reset the agent
     hiddenLayers = layers;
     agent.initNetwork(hiddenLayers, activationFunction);
+    generation = 0;
   }
   else {
     hiddenLayersInput.value = formatHiddenLayers(hiddenLayers);
@@ -188,6 +189,7 @@ activationFunctionInput.addEventListener("change", () => {
   // Update the af and reset the agent
   updateActivationFunction();
   agent.initNetwork(hiddenLayers, activationFunction);
+  generation = 0;
 });
 
 learningRateInput.addEventListener("change", () => {
