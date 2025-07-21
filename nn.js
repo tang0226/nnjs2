@@ -1,7 +1,10 @@
 class NN {
   constructor(obj) {
+
+    // Copy an existing network
     if (obj.nn) {
       let nn = obj.nn;
+      let deepCopy = obj.deepCopy;
       
       this.layerSizes = [...nn.layerSizes];
       this.numLayers = nn.numLayers;
@@ -24,19 +27,38 @@ class NN {
         }
       });
 
-      this.weights = this.w = NN.copyW(nn.w);
-      this.weightDerivatives = this.dw = NN.copyW(nn.dw);
-      this.dwTotal = this.zeroWeights();
+      // Avoid deep copying if not necessary (useful for web workers)
+      if (deepCopy) {
+        this.weights = this.w = NN.copyW(nn.w);
+        this.weightDerivatives = this.dw = NN.copyW(nn.dw);
+        this.dwTotal = this.zeroWeights();
 
-      this.biases = this.b = NN.copy2d(nn.b);
-      this.biasDerivatives = this.db = NN.copy2d(nn.db);
-      this.dbTotal = this.zeroBiases();
+        this.biases = this.b = NN.copy2d(nn.b);
+        this.biasDerivatives = this.db = NN.copy2d(nn.db);
+        this.dbTotal = this.zeroBiases();
+        
+        this.neuronOutputs = this.z = NN.copy2d(nn.z);
+        this.neuronOutputDerivatives = this.dz = NN.copy2d(nn.dz);
+
+        this.activations = this.a = NN.copy2d(nn.a);
+        this.activationDerivatives = this.da = NN.copy2d(nn.da);
+      }
       
-      this.neuronOutputs = this.z = NN.copy2d(nn.z);
-      this.neuronOutputDerivatives = this.dz = NN.copy2d(nn.dz);
+      else {
+        this.weights = this.w = nn.w;
+        this.weightDerivatives = this.dw = nn.dw;
+        this.dwTotal = this.zeroWeights();
 
-      this.activations = this.a = NN.copy2d(nn.a);
-      this.activationDerivatives = this.da = NN.copy2d(nn.da);
+        this.biases = this.b = nn.b;
+        this.biasDerivatives = this.db = nn.db;
+        this.dbTotal = this.zeroBiases();
+        
+        this.neuronOutputs = this.z = nn.z;
+        this.neuronOutputDerivatives = this.dz = nn.dz;
+
+        this.activations = this.a = nn.a;
+        this.activationDerivatives = this.da = nn.da;
+      }
 
       return;
     }
