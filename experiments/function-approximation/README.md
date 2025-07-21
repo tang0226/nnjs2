@@ -1,8 +1,8 @@
 # 7/21/25
-This is a simple 1-variable function approximator that uses basic backpropagation.
+This is a simple 1-variable function approximator that uses backpropagation.
 
 ## Log
-I coded this up today as an overly-simple example. I wanted to make sure I could get some basics down after the difficulties I had with `image-approximator` experiment. Fortunately, this project worked as intended, demonstrating the validity of my backpropagation calculus (*phew*).
+I coded this up today as an basic example of neural network training. I wanted to make sure I could get some fundamentals down after the difficulties I had with `image-approximator` experiment. Fortunately, this project worked as intended, demonstrating the validity of my backpropagation calculus (*phew*).
 
 This simple project showed me just how long NN training can take, even with just a few neurons. I also got a feel for how training responds to changes in the learning rate and hidden layer sizes.
 
