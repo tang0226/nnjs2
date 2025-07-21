@@ -43,7 +43,7 @@ class NN {
         this.activations = this.a = NN.copy2d(nn.a);
         this.activationDerivatives = this.da = NN.copy2d(nn.da);
       }
-      
+
       else {
         this.weights = this.w = nn.w;
         this.weightDerivatives = this.dw = nn.dw;
@@ -222,9 +222,9 @@ class NN {
 
     // LAST LAYER
 
-    // Last layer da (uses the loss function (y - a) ^ 2)
+    // Last layer da (uses the loss function 1 / 2 * (y - a) ^ 2)
     for (let i = 0; i < this.outputLayerSize; i++) {
-      this.da[this.numLayers - 2][i] = 2 * (this.a[this.numLayers - 1][i] - y[i]);
+      this.da[this.numLayers - 2][i] = (this.a[this.numLayers - 1][i] - y[i]);
     }
 
     // Last layer dz, db, and dw

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>NNJS2</title>
+  <link rel="stylesheet" href="index.css"/>
+</head>
+<body>
+  <main class="float-children-center">
+    <h1>Function Approximation with a Neural Network</h1>
+    <br/>
+    <div>
+      <div id="canvas-section">
+        <canvas id="main-canvas"></canvas>
+      </div>
+      <div id="controls">
+        <span>Learning rate: </span>
+        <input id="learning-rate" type="text" value="0.1"/>
+        <br/>
+        <button id="start-button">Start</button>
+        <button id="stop-button">Stop</button>
+        <br/>
+        <button id="reset-network-button">Reset network</button>
+        <button id="clear-points-button">Clear points</button>
+        <div>Generation: <span id="generation"></span></div>
+      </div>
+    </div>
+  </main>
+  <script src="../../nn.js"></script>
+  <script src="./main.js"></script>
+</body>
+</html>
