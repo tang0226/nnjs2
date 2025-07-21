@@ -144,25 +144,11 @@ function createAgentNN() {
 var agent = {
   nn: createAgentNN(),
   inputScale: 1,
-  dwTotal: null,
-  dbTotal: null,
   learningRate: Number(learningRateInput.value),
   generation: 0,
 
   // Draws based on current network; also totals up parameter derivatives from backpropagation
   draw() {
-    // Build derivative total arrays
-    this.dwTotal = [];
-    this.dbTotal = [];
-    for (let l = 0; l < this.nn.numLayers - 1; l++) {
-      let dw2d = [];
-      for (let _ = 0; _ < this.nn.layerSizes[l + 1]; _++) {
-        dw2d.push((new Array(this.nn.layerSizes[l])).fill(0));
-      }
-      this.dwTotal.push(dw2d);
-      this.dbTotal.push((new Array(this.nn.layerSizes[l + 1])).fill(0));
-    }
-    
     let imgData = eCtx.createImageData(width, height);
     let data = imgData.data;
     let i = 0;
@@ -174,10 +160,6 @@ var agent = {
 
         // Backpropagate with the target values from the main image data
         let bp = this.nn.backpropagate([mainImgData[i] / 255, mainImgData[i + 1] / 255, mainImgData[i + 2] / 255]);
-
-        // Add derivatives to the derivative totals
-        this.dbTotal = NN.add2d(this.dbTotal, bp.b);
-        this.dwTotal = NN.add3d(this.dwTotal, bp.w);
 
         data[i] = Math.round(res[0] * 255);
         data[i + 1] = Math.round(res[1] * 255);
@@ -192,9 +174,8 @@ var agent = {
 
   // Updates network based on derivative totals and learning rate
   updateNetwork() {
-    // Add the learned derivatives, averaged over all pixels and multiplied by the LR
-    this.nn.b = NN.add2d(this.nn.b, NN.mulScalar2d(this.dbTotal, -this.learningRate / (width * height)));
-    this.nn.w = NN.add3d(this.nn.w, NN.mulScalar3d(this.dwTotal, -this.learningRate / (width * height)));
+    // Apply derivatives accumulated over this generation
+    this.nn.endEpoch(this.learningRate);
     this.generation++;
   },
 

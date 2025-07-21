@@ -8,14 +8,14 @@ class NN {
       this.outputLayerSize = nn.outputLayerSize;
 
       this.activationFunctions = this.af = [...nn.af];
-      this.weights = this.w = nn.w.map((arr2d) => NN.copy2d(arr2d));
-      this.weightDerivatives = this.dw = nn.dw.map((arr2d) => NN.copy2d(arr2d));
-      this.biases = this.b = copy2d(nn.b);
-      this.biasDerivatives = this.db = copy2d(nn.db);
-      this.neuronOutputs = this.z = copy2d(nn.z);
-      this.neuronOutputDerivatives = this.dz = copy2d(nn.dz);
-      this.activations = this.a = copy2d(nn.a);
-      this.activationDerivatives = this.da = copy2d(nn.da);
+      this.weights = this.w = NN.copyW(nn.w);
+      this.weightDerivatives = this.dw = NN.copyW(nn.dw);
+      this.biases = this.b = NN.copy2d(nn.b);
+      this.biasDerivatives = this.db = NN.copy2d(nn.db);
+      this.neuronOutputs = this.z = NN.copy2d(nn.z);
+      this.neuronOutputDerivatives = this.dz = NN.copy2d(nn.dz);
+      this.activations = this.a = NN.copy2d(nn.a);
+      this.activationDerivatives = this.da = NN.copy2d(nn.da);
       return;
     }
 
@@ -60,7 +60,10 @@ class NN {
 
     // Weights [layerFrom][nTo][nFrom]
     this.weights = this.w = [];
-    this.weightDerivatives = this.dw = [];
+    this.weightDerivatives = this.dw = this.zeroWeights();
+
+    // For epochs and derivative averaging
+    this.dwTotal = this.zeroWeights();
 
     if (obj.wInit) {
       if (obj.wInit.method) {
@@ -85,12 +88,14 @@ class NN {
 
     for (let i = 0; i < this.numLayers - 1; i++) {
       this.w.push(NN.init2d(this.layerSizes[i + 1], this.layerSizes[i], this.wInitFunc));
-      this.dw.push(NN.init2d(this.layerSizes[i + 1], this.layerSizes[i], () => 0));
     }
 
     // Biases [nonInputLayer][n]
     this.biases = this.b = [];
-    this.biasDerivatives = this.db = [];
+    this.biasDerivatives = this.db = this.zeroBiases();
+
+    // For epochs and derivative averaging
+    this.dbTotal = this.zeroBiases();
 
     if (obj.bInit) {
       if (obj.bInit.method) {
@@ -119,10 +124,6 @@ class NN {
         l.push(this.bInitFunc());
       }
       this.b.push(l);
-
-      let dl = new Array(this.layerSizes[i + 1]);
-      dl.fill(0);
-      this.db.push(dl);
     }
 
     // outputs (z = sum(prevA * weight) + bias; a = activationFunc(z))
@@ -145,6 +146,11 @@ class NN {
         this.da.push((new Array(this.layerSizes[i])).fill(0));
       }
     }
+
+    // Epochs and training
+
+    // Number of trials this epoch
+    this.trials = 0;
   }
 
 
@@ -168,10 +174,7 @@ class NN {
     return [...this.a[this.numLayers - 1]];
   }
 
-  backpropagate(y, inputs = []) {
-    if (inputs.length) {
-      this.feedForward(inputs);
-    }
+  backpropagate(y, isTrial = true) {
 
     // LAST LAYER
 
@@ -225,12 +228,43 @@ class NN {
       }
     }
 
+    if (isTrial) {
+      this.trials++;
+      this.dwTotal = NN.add3d(this.dwTotal, this.dw);
+      this.dbTotal = NN.add2d(this.dbTotal, this.db);
+    }
+
     return {
       w: this.dw,
       b: this.db,
       z: this.dz,
       a: this.da
     };
+  }
+
+  endEpoch(learningRate) {
+    this.w = NN.add3d(this.w, NN.mulScalar3d(this.dwTotal, -learningRate / this.trials));
+    this.b = NN.add2d(this.b, NN.mulScalar2d(this.dbTotal, -learningRate / this.trials));
+
+    this.dwTotal = this.zeroWeights();
+    this.dbTotal = this.zeroBiases();
+    this.trials = 0;
+  }
+
+  zeroWeights() {
+    let res = [];
+    for (let l = 0; l < this.numLayers - 1; l++) {
+      res.push((new Array(this.layerSizes[l + 1])).fill(0).map((x) => (new Array(this.layerSizes[l])).fill(0)))
+    }
+    return res;
+  }
+
+  zeroBiases() {
+    let res = [];
+    for (let l = 1; l < this.numLayers; l++) {
+      res.push((new Array(this.layerSizes[l])).fill(0));
+    }
+    return res;
   }
 
 
@@ -297,6 +331,10 @@ class NN {
 
   static copy2d(arr2d) {
     return arr2d.map((arr) => [...arr]);
+  }
+
+  static copyW(w) {
+    return w.map((a2) => this.copy2d(a2));
   }
 
   static add2d(a, b) {
