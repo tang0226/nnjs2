@@ -1,11 +1,13 @@
 const mainCanvas = document.getElementById("main-canvas");
 const ctx = mainCanvas.getContext("2d");
 
-const learningRateInput = document.getElementById("learning-rate")
+const learningRateInput = document.getElementById("learning-rate");
+const epfInput = document.getElementById("epf-input");
 const startButton = document.getElementById("start-button");
 const stopButton = document.getElementById("stop-button");
 const resetNetworkButton = document.getElementById("reset-network-button");
 const clearPointsButton = document.getElementById("clear-points-button");
+
 
 var width, height;
 function setCanvasDim(w, h) {
@@ -81,7 +83,7 @@ var agent = {
     ctx.stroke();
   },
 
-  updateNetwork() {
+  learn() {
     for (let p of points) {
       this.nn.feedForward([p[0]]);
       this.nn.backpropagate([p[1]]);
@@ -110,13 +112,17 @@ function drawPoints() {
 var generation = 0;
 var running = false;
 var drawInterval;
+var epochsPerFrame = Number(epfInput.value);
+
 function draw() {
   ctx.clearRect(0, 0, width, height);
   drawPoints();
   agent.drawFunction();
   if (points.length) {
-    agent.updateNetwork();
-    generation++;
+    for (let i = 0; i < epochsPerFrame; i++) {
+      agent.learn();
+      generation++;
+    }
     document.querySelector("#generation").innerText = generation;
   }
 }
@@ -138,6 +144,16 @@ learningRateInput.addEventListener("change", () => {
   }
   else {
     agent.learningRate = n;
+  }
+});
+
+epfInput.addEventListener("change", () => {
+  let n = Number(epfInput.value);
+  if (Number.isNaN(n) || !Number.isInteger(n)) {
+    epfInput.value = epochsPerFrame;
+  }
+  else {
+    epochsPerFrame = n;
   }
 });
 
