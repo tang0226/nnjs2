@@ -3,18 +3,30 @@
 <head>
   <meta charset="UTF-8" />
   <title>NNJS2</title>
-  <style>
-    canvas {
-      border: 1px solid black;
-    }
-    div, span {
-      font-family: Arial, Helvetica, sans-serif;
-      font-size: 20px;
-    }
-  </style>
+  <link rel="stylesheet" href="index.css"/>
 </head>
 <body>
-  <canvas id="main-canvas"></canvas>
+  <main class="float-children-center">
+    <div id="canvas-section">
+      <canvas id="main-canvas"></canvas>
+      <canvas id="evolving-canvas"></canvas>
+    </div>
+    <div id="controls">
+      <div>
+        Canvas size: <input type="text" id="canvas-size-input" value="100">
+      </div>
+      <div>
+        <span>Choose image: <input type="file" id="image-file-input" accept="image/*"></span>
+      </div>
+      <div>
+        Learning rate: <input type="text" id="learning-rate-input" value="0.1">
+      </div>
+      <button id="start-button">Start</button>
+      <button id="stop-button">Stop</button>
+      <div>Generation: <span id="generation"></span></div>
+    </div>
+  </main>
   <script src="../../nn.js"></script>
+  <script src="./main.js"></script>
 </body>
 </html>

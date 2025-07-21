@@ -165,7 +165,7 @@ class NN {
       }
     }
 
-    return this.a[this.numLayers - 1];
+    return [...this.a[this.numLayers - 1]];
   }
 
   backpropagate(y, inputs = []) {
@@ -177,7 +177,7 @@ class NN {
 
     // Last layer da (uses the loss function (y - a) ^ 2)
     for (let i = 0; i < this.outputLayerSize; i++) {
-      this.da[this.numLayers - 2][i] = 2 * (this.a[this.numLayers - 1][i] - y[i]);
+      this.da[this.numLayers - 2][i] = /*2 * */(this.a[this.numLayers - 1][i] - y[i]);
     }
 
     // Last layer dz, db, and dw
