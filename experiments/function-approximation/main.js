@@ -1,6 +1,8 @@
 const mainCanvas = document.getElementById("main-canvas");
 const ctx = mainCanvas.getContext("2d");
 
+const activationFunctionInput = document.getElementById("activation-function");
+const hiddenLayersInput = document.getElementById("hidden-layers-input");
 const learningRateInput = document.getElementById("learning-rate");
 const epfInput = document.getElementById("epf-input");
 const startButton = document.getElementById("start-button");
@@ -8,6 +10,10 @@ const stopButton = document.getElementById("stop-button");
 const resetNetworkButton = document.getElementById("reset-network-button");
 const clearPointsButton = document.getElementById("clear-points-button");
 
+
+hiddenLayersInput.value = "40, 20";
+learningRateInput.value = "0.2";
+epfInput.value = "50";
 
 var width, height;
 function setCanvasDim(w, h) {
@@ -39,7 +45,7 @@ function canvasToPlane(x, y) {
 var xScale = 10, yScale = 1, xCenter = 0, yCenter = 0.5;
 var points = [];
 
-var nnFuncRes = 1;
+var nnFuncRes = 2;
 
 var targetColor = "#FF0000";
 var approximationColor = "#4287f5";
@@ -49,10 +55,10 @@ var targetSquareSize = 5;
 var agent = {
   learningRate: Number(learningRateInput.value),
 
-  initNetwork() {
+  initNetwork(hiddenLayers, af) {
     this.nn = new NN({
-      layerSizes: [1, 30, 15, 1],
-      activationFunctions: [NN.RELU, NN.SIGMOID],
+      layerSizes: [1].concat(hiddenLayers).concat([1]),
+      activationFunctions: [af, NN.SIGMOID],
       wInit: {
         method: NN.RANDOM,
         range: 0.5,
@@ -92,7 +98,6 @@ var agent = {
     this.nn.endEpoch(this.learningRate);
   }
 }
-agent.initNetwork();
 
 function drawPoints() {
   for (let p of points) {
@@ -108,11 +113,41 @@ function drawPoints() {
 }
 
 
+function formatHiddenLayers(layers) {
+  return layers.join(", ");
+}
+
+function parseHiddenLayersString(str) {
+  let nums = hiddenLayersInput.value.split(",").map((x) => Number(x.trim()));
+  for (let n of nums) {
+    if (Number.isNaN(n) || !Number.isInteger(n)) {
+      return false;
+    }
+  }
+  return nums;
+}
+
+function updateActivationFunction() {
+  let val = activationFunctionInput.value;
+  switch(val) {
+    case "relu":
+      activationFunction = NN.RELU;
+      break;
+    case "sigmoid":
+      activationFunction = NN.SIGMOID;
+      break;
+  }
+}
 
 var generation = 0;
 var running = false;
 var drawInterval;
 var epochsPerFrame = Number(epfInput.value);
+var hiddenLayers = parseHiddenLayersString(hiddenLayersInput.value);
+var activationFunction;
+updateActivationFunction();
+
+agent.initNetwork(hiddenLayers, activationFunction);
 
 function draw() {
   ctx.clearRect(0, 0, width, height);
@@ -135,6 +170,24 @@ mainCanvas.addEventListener("click", (event) => {
     ctx.clearRect(0, 0, width, height);
     drawPoints();
   }
+});
+
+hiddenLayersInput.addEventListener("change", () => {
+  let layers = parseHiddenLayersString(hiddenLayersInput.value);
+  if (layers) {
+    // update the layers and reset the agent
+    hiddenLayers = layers;
+    agent.initNetwork(hiddenLayers, activationFunction);
+  }
+  else {
+    hiddenLayersInput.value = formatHiddenLayers(hiddenLayers);
+  }
+});
+
+activationFunctionInput.addEventListener("change", () => {
+  // Update the af and reset the agent
+  updateActivationFunction();
+  agent.initNetwork(hiddenLayers, activationFunction);
 });
 
 learningRateInput.addEventListener("change", () => {
@@ -172,7 +225,7 @@ stopButton.addEventListener("click", () => {
 });
 
 resetNetworkButton.addEventListener("click", () => {
-  agent.initNetwork();
+  agent.initNetwork(hiddenLayers, activationFunction);
   generation = 0;
 });
 

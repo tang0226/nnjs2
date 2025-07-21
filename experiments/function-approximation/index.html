@@ -14,11 +14,20 @@
         <canvas id="main-canvas"></canvas>
       </div>
       <div id="controls">
+        <span>Hidden layers:</span>
+        <input id="hidden-layers-input" type="text"/>
+        <br/>
+        <span>Activation function:</span>
+        <select id="activation-function">
+          <option value="relu">ReLU</option>
+          <option value="sigmoid">Sigmoid</option>
+        </select>
+        <br/>
         <span>Learning rate: </span>
-        <input id="learning-rate" type="text" value="0.1"/>
+        <input id="learning-rate" type="text"/>
         <br/>
         <span>Epochs per frame: </span>
-        <input id="epf-input" type="text" value="5"/>
+        <input id="epf-input" type="text"/>
         <br/>
         <button id="start-button">Start</button>
         <button id="stop-button">Stop</button>
