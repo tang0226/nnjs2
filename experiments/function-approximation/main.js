@@ -142,7 +142,7 @@ function updateActivationFunction() {
   }
 }
 
-var generation = 0;
+var epoch = 0;
 var running = false;
 var drawInterval;
 var epochsPerFrame = Number(epfInput.value);
@@ -159,9 +159,9 @@ function draw() {
   if (points.length) {
     for (let i = 0; i < epochsPerFrame; i++) {
       agent.learn();
-      generation++;
+      epoch++;
     }
-    document.querySelector("#generation").innerText = generation;
+    document.querySelector("#epoch").innerText = epoch;
   }
 }
 
@@ -181,7 +181,7 @@ hiddenLayersInput.addEventListener("change", () => {
     // update the layers and reset the agent
     hiddenLayers = layers;
     agent.initNetwork(hiddenLayers, activationFunction);
-    generation = 0;
+    epoch = 0;
   }
   else {
     hiddenLayersInput.value = formatHiddenLayers(hiddenLayers);
@@ -192,7 +192,7 @@ activationFunctionInput.addEventListener("change", () => {
   // Update the af and reset the agent
   updateActivationFunction();
   agent.initNetwork(hiddenLayers, activationFunction);
-  generation = 0;
+  epoch = 0;
 });
 
 learningRateInput.addEventListener("change", () => {
@@ -231,13 +231,13 @@ stopButton.addEventListener("click", () => {
 
 resetNetworkButton.addEventListener("click", () => {
   agent.initNetwork(hiddenLayers, activationFunction);
-  generation = 0;
+  epoch = 0;
 });
 
 clearPointsButton.addEventListener("click", () => {
   points = [];
   if (!running) {
     ctx.clearRect(0, 0, width, height);
-    generation = 0;
+    epoch = 0;
   }
 });
