@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>2D Image Approximation with Neural Networks</title>
+  <link rel="stylesheet" href="index.css"/>
+</head>
+<body>
+  <main class="float-children-center">
+    <h1>2D Function Approximation</h1>
+    <br/>
+    <div>
+      <div id="canvas-section">
+        <canvas id="main-canvas"></canvas>
+      </div>
+      <div id="controls">
+        <span>Show data: </span>
+        <input id="show-data-checkbox" type="checkbox" value="true"/>
+        <br/>
+        <button id="start-button">Start</button>
+        <button id="stop-button">Stop</button>
+        <br/>
+        <button id="reset-network-button">Reset network</button>
+        <button id="clear-points-button">Clear points</button>
+        <br/>
+        <span>Hidden layers:</span>
+        <input id="hidden-layers-input" type="text"/>
+        <br/>
+        <span>Activation function:</span>
+        <select id="activation-function">
+          <option value="relu">ReLU</option>
+          <option value="sigmoid">Sigmoid</option>
+          <option value="tanh">Tanh</option>
+        </select>
+        <br/>
+        <span>Learning rate: </span>
+        <input id="learning-rate" type="text"/>
+        <br/>
+        <span>Epochs per frame: </span>
+        <input id="epf-input" type="text"/>
+        <br/>
+        <div>Epoch: <span id="epoch"></span></div>
+      </div>
+    </div>
+  </main>
+  <script src="../../nn.js"></script>
+  <script src="./main.js"></script>
+</body>
+</html>
