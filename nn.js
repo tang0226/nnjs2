@@ -42,6 +42,9 @@ class NN {
 
         this.activations = this.a = NN.copy2d(nn.a);
         this.activationDerivatives = this.da = NN.copy2d(nn.da);
+
+        this.loss = 0;
+        this.totalLoss = 0;
       }
 
       else {
@@ -58,6 +61,9 @@ class NN {
 
         this.activations = this.a = nn.a;
         this.activationDerivatives = this.da = nn.da;
+
+        this.loss = 0;
+        this.totalLoss = 0;
       }
 
       return;
@@ -191,10 +197,15 @@ class NN {
       }
     }
 
+    // Loss
+    this.loss = 0;
+
     // Epochs and training
 
     // Number of trials this epoch
     this.trials = 0;
+    this.totalLoss = 0;
+    
   }
 
 
@@ -223,9 +234,18 @@ class NN {
     // LAST LAYER
 
     // Last layer da (uses the loss function 1 / 2 * (y - a) ^ 2)
+
+    this.loss = 0;
+
     for (let i = 0; i < this.outputLayerSize; i++) {
-      this.da[this.numLayers - 2][i] = (this.a[this.numLayers - 1][i] - y[i]);
+      let aMinusY = this.a[this.numLayers - 1][i] - y[i];
+      this.da[this.numLayers - 2][i] = 2 * aMinusY;
+
+      // MSE loss
+      this.loss += aMinusY * aMinusY;
     }
+    // Average the total loss for this trial
+    this.loss /= this.outputLayerSize;
 
     // Last layer dz, db, and dw
     let li = this.numLayers - 2;
@@ -276,6 +296,7 @@ class NN {
       this.trials++;
       this.dwTotal = NN.add3d(this.dwTotal, this.dw);
       this.dbTotal = NN.add2d(this.dbTotal, this.db);
+      this.totalLoss += this.loss;
     }
 
     return {
@@ -297,15 +318,21 @@ class NN {
     return scaledChanges;
   }
 
+  startEpoch() {
+    this.dwTotal = this.zeroWeights();
+    this.dbTotal = this.zeroBiases();
+    this.trials = 0;
+    this.totalLoss = 0;
+    this.avgLoss = null;
+  }
+
   endEpoch(learningRate) {
     this.applyChanges(
       { w: this.dwTotal, b: this.dbTotal },
       -learningRate / this.trials
     );
 
-    this.dwTotal = this.zeroWeights();
-    this.dbTotal = this.zeroBiases();
-    this.trials = 0;
+    this.avgLoss = this.totalLoss / this.trials;
   }
 
   zeroWeights() {

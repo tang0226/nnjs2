@@ -26,7 +26,7 @@ function setCanvasDim(w, h) {
   height = h;
 }
 
-setCanvasDim(100, 100);
+setCanvasDim(200, 200);
 
 
 function planeXToCanvas(x) {
@@ -154,6 +154,7 @@ updateActivationFunction();
 agent.initNetwork(hiddenLayers, activationFunction);
 
 function draw() {
+  agent.nn.startEpoch();
   ctx.clearRect(0, 0, width, height);
   agent.draw();
   if (showDataCheckbox.checked) {
@@ -164,6 +165,7 @@ function draw() {
       agent.learn();
       epoch++;
     }
+    document.querySelector("#loss").innerText = agent.nn.avgLoss.toFixed(4);
     document.querySelector("#epoch").innerText = epoch;
   }
 }

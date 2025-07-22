@@ -90,6 +90,7 @@ var agent = {
   },
 
   learn() {
+    this.nn.startEpoch();
     for (let p of points) {
       this.nn.feedForward([p[0]]);
       this.nn.backpropagate([p[1]]);
@@ -162,6 +163,7 @@ function draw() {
       epoch++;
     }
     document.querySelector("#epoch").innerText = epoch;
+    document.querySelector("#loss").innerText = agent.nn.avgLoss.toFixed(4);
   }
 }
 
