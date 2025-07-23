@@ -14,31 +14,38 @@
         <canvas id="main-canvas"></canvas>
       </div>
       <div id="controls">
-        <span>Show data: </span>
-        <input id="show-data-checkbox" type="checkbox" value="true"/>
-        <br/>
-        <button id="start-button">Start</button>
-        <button id="stop-button">Stop</button>
-        <br/>
-        <button id="reset-network-button">Reset network</button>
-        <button id="clear-points-button">Clear points</button>
-        <br/>
-        <span>Hidden layers:</span>
-        <input id="hidden-layers-input" type="text"/>
-        <br/>
-        <span>Activation function:</span>
-        <select id="activation-function">
-          <option value="relu">ReLU</option>
-          <option value="sigmoid">Sigmoid</option>
-          <option value="tanh">Tanh</option>
-        </select>
-        <br/>
-        <span>Learning rate: </span>
-        <input id="learning-rate" type="text"/>
-        <br/>
-        <span>Epochs per frame: </span>
-        <input id="epf-input" type="text"/>
-        <br/>
+        <div>
+          <span>Show data: </span>
+          <input id="show-data-checkbox" type="checkbox" value="true"/>
+        </div>
+        <div>
+          <button id="start-button">Start</button>
+          <button id="stop-button">Stop</button>
+        </div>
+        <div>
+          <button id="reset-network-button">Reset network</button>
+          <button id="clear-points-button">Clear points</button>
+        </div>
+        <div>
+          <span>Hidden layers:</span>
+          <input id="hidden-layers-input" type="text"/>
+        </div>
+        <div>
+          <span>Activation function:</span>
+          <select id="activation-function">
+            <option value="relu">ReLU</option>
+            <option value="sigmoid">Sigmoid</option>
+            <option value="tanh">Tanh</option>
+          </select>
+        </div>
+        <div>
+          <span>Learning rate: </span>
+          <input id="learning-rate" type="text"/>
+        </div>
+        <div>
+          <span>Epochs per frame: </span>
+          <input id="epf-input" type="text"/>
+        </div>
         <div>Epoch: <span id="epoch"></span></div>
         <div>Loss: <span id="loss"></span></div>
       </div>
