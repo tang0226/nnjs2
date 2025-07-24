@@ -20,7 +20,7 @@ Tasks:
 3. repeat
 
 
-Batching optiosn:
+Batching options:
 1. Full-batch (run through every point in the training dataset, then end the iteration and apply the average derivative)
 2. Stochastic  / mini-batch: more frequent updates using random sampling and smaller batch sizes
 

@@ -24,6 +24,9 @@ class NN {
           case "leaky relu":
             this.af.push(NN.LEAKY_RELU(af.alpha));
             break;
+          case "tanh":
+            this.af.push(NN.TANH);
+            break;
         }
       });
 
