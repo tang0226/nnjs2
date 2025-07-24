@@ -112,8 +112,11 @@ var canvasSize = Number(canvasSizeInput.value);
 setCanvasDim(canvasSize, canvasSize);
 
 // Stores the size of the raw input image
-var imgFileWidth = imgFileHeight = 1000;
-var targetImgData;
+
+// Set a junk default value; code will validate use of these variables
+// by checking that targetImg is set
+var imgFileWidth = imgFileHeight = 100;
+var targetImg, targetImgData, targetNNOutput;
 
 // Update canvas dimensions based on the target canvas size and the AR of the image file
 function updateCanvasDim() {
@@ -124,6 +127,14 @@ function updateCanvasDim() {
   else {
     setCanvasDim(canvasSize, Math.round(canvasSize / ar));
   }
+}
+
+// Draws the target image to the target canvas and reads the image data
+// so it can be used with the network.
+function updateTargetImg() {
+    targetCtx.drawImage(targetImg, 0, 0, width, height);
+    targetImgData = targetCtx.getImageData(0, 0, width, height).data;
+    targetNNOutput = normalizeColorValues(imgDataToGrayscale(targetImgData));
 }
 
 
@@ -231,8 +242,8 @@ imageInput.addEventListener("change", (event) => {
       imgFileHeight = img.height;
       updateCanvasDim();
 
-      targetCtx.drawImage(img, 0, 0, width, height);
-      targetImgData = targetCtx.getImageData(0, 0, width, height).data;
+      targetImg = img;
+      updateTargetImg();
     };
 
     img.src = fr.result;
@@ -240,6 +251,12 @@ imageInput.addEventListener("change", (event) => {
 
   if (event.target.files.length) {
     fr.readAsDataURL(event.target.files[0]);
+  }
+  else {
+    // Reset image variables
+    targetImg = targetImgData = targetNNOutput = null;
+    imgFileWidth = imgFileHeight = 100;
+    targetCtx.clearRect(0, 0, width, height);
   }
 });
 
@@ -251,6 +268,9 @@ canvasSizeInput.addEventListener("change", () => {
   else {
     canvasSize = n;
     updateCanvasDim();
+    if (targetImg) {
+      updateTargetImg();
+    }
   }
 });
 
