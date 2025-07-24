@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Grayscale Image Approximation with Neural Networks</title>
+  <link rel="stylesheet" href="index.css">
+</head>
+<body>
+  <main class="float-children-center">
+    <h1>Grayscale Image Approximation</h1>
+    <br/>
+    <div>
+      <div id="canvas-section">
+        <div>
+          <div>Target image: </div>
+          <canvas id="target-canvas"></canvas>
+        </div>
+        <div>
+          <div>Neural network output: </div>
+          <canvas id="main-canvas"></canvas>
+        </div>
+      </div>
+      <div id="controls">
+        <div>
+          <span>Choose image: </span>
+          <input type="file" id="image-input" accept="image/*">
+        </div>
+        <div>
+          <span>Canvas size: </span>
+          <input id="canvas-size" type="text">
+        </div>
+        <hr>
+        <div>
+          <button id="start-button">Start</button>
+          <button id="stop-button">Stop</button>
+        </div>
+        <div>
+          <button id="reset-network-button">Reset network</button>
+        </div>
+        <hr>
+        <div>
+          Training workers:
+          <select id="training-workers">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+          </select>
+        </div>
+        <div>
+          Render workers:
+          <select id="render-workers">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+          </select>
+        </div>
+        <hr>
+        <div>
+          <span>Hidden layers:</span>
+          <input id="hidden-layers" type="text">
+        </div>
+        <div>
+          <span>Activation function:</span>
+          <select id="activation-function">
+            <option value="relu">ReLU</option>
+            <option value="sigmoid">Sigmoid</option>
+            <option value="tanh">Tanh</option>
+          </select>
+        </div>
+        <div>
+          <span>Learning rate: </span>
+          <input id="learning-rate" type="text">
+        </div>
+        <div>
+          <span>Epochs per frame: </span>
+          <input id="epf-input" type="text">
+        </div>
+        <div>Epoch: <span id="epoch"></span></div>
+        <div>Loss: <span id="loss"></span></div>
+      </div>
+    </div>
+  </main>
+  <script src="../../nn.js"></script>
+  <script src="./main.js"></script>
+</body>
+</html>

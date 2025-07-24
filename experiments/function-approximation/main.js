@@ -119,7 +119,7 @@ function formatHiddenLayers(layers) {
 }
 
 function parseHiddenLayersString(str) {
-  let nums = hiddenLayersInput.value.split(",").map((x) => Number(x.trim()));
+  let nums = str.split(",").map((x) => Number(x.trim()));
   for (let n of nums) {
     if (Number.isNaN(n) || !Number.isInteger(n)) {
       return false;
