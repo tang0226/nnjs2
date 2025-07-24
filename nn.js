@@ -83,29 +83,32 @@ class NN {
     this.outputLayerSize = obj.layerSizes[this.numLayers - 1];
 
     // Activation functions
-    if (obj.activationFunctions || obj.af) {
-      let af = obj.activationFunctions || obj.af;
-      if (af.length > obj.layerSizes - 1) {
-        throw new Error("ValueError: Wrong number of activation functions");
+    if (!(obj.activationFunctions || obj.af)) {
+      obj.af = [NN.RELU, NN.SIGMOID];
+    }
+    let af = obj.activationFunctions || obj.af;
+    if (af.length > obj.layerSizes - 1) {
+      throw new Error("ValueError: Wrong number of activation functions");
+    }
+    // One af per hidden / output layer
+    else if (af.length == obj.numLayers - 1) {
+      this.af = af;
+    }
+    // Otherwise, shorthand was used
+    else {
+      // [hidden layers, output layer]
+      if (af.length == 2) {
+        this.af = new Array(this.numLayers - 2);
+        this.af.fill(af[0]);
+        this.af[this.numLayers - 2] = af[1];
       }
-      else if (af.length == obj.numLayers - 1) {
-        this.af = af;
+      // [all layers]
+      else if (af.length == 1) {
+        this.af = new Array(this.numLayers - 1);
+        this.af.fill(af[0]);
       }
       else {
-        // [hidden layers, output layer]
-        if (af.length == 2) {
-          this.af = new Array(this.numLayers - 2);
-          this.af.fill(af[0]);
-          this.af[this.numLayers - 2] = af[1];
-        }
-        // [all layers]
-        else if (af.length == 1) {
-          this.af = new Array(this.numLayers - 1);
-          this.af.fill(af[0]);
-        }
-        else {
-          throw new Error("ValueError: Wrong number of activation functions");
-        }
+        throw new Error("ValueError: Wrong number of activation functions");
       }
     }
 
