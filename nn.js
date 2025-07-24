@@ -112,7 +112,7 @@ class NN {
     this.weights = this.w = [];
     this.weightDerivatives = this.dw = this.zeroWeights();
 
-    // For epochs and derivative averaging
+    // For training iterations and derivative averaging
     this.dwTotal = this.zeroWeights();
 
     if (obj.wInit) {
@@ -144,7 +144,7 @@ class NN {
     this.biases = this.b = [];
     this.biasDerivatives = this.db = this.zeroBiases();
 
-    // For epochs and derivative averaging
+    // For training iterations and derivative averaging
     this.dbTotal = this.zeroBiases();
 
     if (obj.bInit) {
@@ -200,15 +200,17 @@ class NN {
     // Loss
     this.loss = 0;
 
-    // Epochs and training
+    // Iterations and training
+    this.iterationInProgress = false;
 
-    // Number of trials this epoch
+    // Number of trials this training iteration
     this.trials = 0;
     this.totalLoss = 0;
     
   }
 
-
+  // Update this NN's activation and weighted sum arrays based on the given inputs
+  // and the current parameters
   feedForward(inputs) {
     for (let i = 0; i < this.layerSizes[0]; i++) {
       this.a[0][i] = inputs[i];
@@ -229,6 +231,11 @@ class NN {
     return [...this.a[this.numLayers - 1]];
   }
 
+  // Must be called after a feedForward call
+  // Given the target outputs y, update this NN's derivative arrays
+  // and add the derivatives to a running total if this is a trial in
+  // a training iteration. This running total will be averaged and applied with a learning rate
+  // at the end of the iteration.
   backpropagate(y, isTrial = true) {
 
     // LAST LAYER
@@ -292,7 +299,7 @@ class NN {
       }
     }
 
-    if (isTrial) {
+    if (isTrial && this.iterationInProgress) {
       this.trials++;
       this.dwTotal = NN.add3d(this.dwTotal, this.dw);
       this.dbTotal = NN.add2d(this.dbTotal, this.db);
@@ -307,6 +314,7 @@ class NN {
     };
   }
 
+  // Applies parameter changes to the nn, multiplied by a scalar coefficient
   applyChanges(changes, coeff) {
     let scaledChanges = {
       w: NN.mulScalar3d(changes.w, coeff),
@@ -318,21 +326,29 @@ class NN {
     return scaledChanges;
   }
 
-  startEpoch() {
+  // Resets running totals and trial counts
+  startIteration() {
     this.dwTotal = this.zeroWeights();
     this.dbTotal = this.zeroBiases();
     this.trials = 0;
     this.totalLoss = 0;
     this.avgLoss = null;
+    this.iterationInProgress = true;
   }
 
-  endEpoch(learningRate) {
-    this.applyChanges(
-      { w: this.dwTotal, b: this.dbTotal },
-      -learningRate / this.trials
-    );
+  // Set the network's average gradient and apply changes if requested
+  endIteration(learningRate, apply = true) {
+    this.avgGradient = {
+      w: NN.mulScalar3d(this.dwTotal, 1 / this.trials),
+      b: NN.mulScalar2d(this.dbTotal, 1 / this.trials),
+    };
+
+    if (apply) {
+      this.applyChanges(this.avgGradient, -learningRate);
+    }
 
     this.avgLoss = this.totalLoss / this.trials;
+    this.iterationInProgress = false;
   }
 
   zeroWeights() {

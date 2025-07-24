@@ -109,6 +109,7 @@ startButton.addEventListener("click", () => {
     return false;
   }
   interval = window.setInterval(function() {
+    agent.nn.startIteration();
     agent.draw();
     agent.updateNetwork();
     document.querySelector("#generation").innerText = agent.generation;
@@ -175,7 +176,7 @@ var agent = {
   // Updates network based on derivative totals and learning rate
   updateNetwork() {
     // Apply derivatives accumulated over this generation
-    this.nn.endEpoch(this.learningRate);
+    this.nn.endIteration(this.learningRate);
     this.generation++;
   },
 

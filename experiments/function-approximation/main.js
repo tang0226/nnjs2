@@ -90,13 +90,13 @@ var agent = {
   },
 
   learn() {
-    this.nn.startEpoch();
+    this.nn.startIteration();
     for (let p of points) {
       this.nn.feedForward([p[0]]);
       this.nn.backpropagate([p[1]]);
     }
 
-    this.nn.endEpoch(this.learningRate);
+    this.nn.endIteration(this.learningRate);
   }
 }
 

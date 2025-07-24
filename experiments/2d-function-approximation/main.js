@@ -96,7 +96,7 @@ var agent = {
       this.nn.backpropagate([p[2]]);
     }
 
-    this.nn.endEpoch(this.learningRate);
+    this.nn.endIteration(this.learningRate);
   }
 }
 
@@ -154,7 +154,7 @@ updateActivationFunction();
 agent.initNetwork(hiddenLayers, activationFunction);
 
 function draw() {
-  agent.nn.startEpoch();
+  agent.nn.startIteration();
   ctx.clearRect(0, 0, width, height);
   agent.draw();
   if (showDataCheckbox.checked) {
