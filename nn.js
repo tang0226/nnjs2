@@ -215,6 +215,11 @@ class NN {
     
   }
 
+  // Serialize the network using structured clone
+  serialize() {
+    return JSON.parse(JSON.stringify(this));
+  }
+
   // Update this NN's activation and weighted sum arrays based on the given inputs
   // and the current parameters
   feedForward(inputs) {
