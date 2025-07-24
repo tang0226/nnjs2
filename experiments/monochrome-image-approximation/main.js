@@ -15,13 +15,13 @@ Learning worker(s)
 
 
 Tasks:
-1. Run some number of epochs, noting the parameter deltas
+1. Run some number of iterations, noting the parameter deltas
 2. Apply the parameter deltas and draw the image (using requestAnimationFrame with putImageData)
 3. repeat
 
 
 Batching optiosn:
-1. Full-batch (run through every point in the training dataset, then end the epoch and apply the average derivative)
+1. Full-batch (run through every point in the training dataset, then end the iteration and apply the average derivative)
 2. Stochastic  / mini-batch: more frequent updates using random sampling and smaller batch sizes
 
 */
@@ -76,7 +76,7 @@ const renderWorkersInput = document.getElementById("render-workers");
 const activationFunctionInput = document.getElementById("activation-function");
 const hiddenLayersInput = document.getElementById("hidden-layers");
 const learningRateInput = document.getElementById("learning-rate");
-const epfInput = document.getElementById("epf-input");
+const ipfInput = document.getElementById("ipf-input");
 
 // Hyperparameters that cannot be changed during training
 const coreInputs = [
@@ -91,7 +91,7 @@ canvasSizeInput.value = "200";
 
 hiddenLayersInput.value = "40, 20";
 learningRateInput.value = "0.2";
-epfInput.value = "1";
+ipfInput.value = "1";
 
 var width, height;
 
@@ -222,8 +222,8 @@ var agent = {
 }
 agent.initNetwork(hiddenLayers, activationFunction);
 
-var epoch = 0;
-var epochsPerFrame = Number(epfInput.value);
+var iteration = 0;
+var iterationsPerFrame = Number(ipfInput.value);
 
 stopButton.setAttribute("disabled", true);
 
@@ -280,7 +280,7 @@ hiddenLayersInput.addEventListener("change", () => {
     // update the layers and reset the agent
     hiddenLayers = layers;
     agent.initNetwork(hiddenLayers, activationFunction);
-    epoch = 0;
+    iteration = 0;
   }
   else {
     hiddenLayersInput.value = formatHiddenLayers(hiddenLayers);
@@ -291,7 +291,7 @@ activationFunctionInput.addEventListener("change", () => {
   // Update the af and reset the agent
   updateActivationFunction();
   agent.initNetwork(hiddenLayers, activationFunction);
-  epoch = 0;
+  iteration = 0;
 });
 
 learningRateInput.addEventListener("change", () => {
@@ -304,13 +304,13 @@ learningRateInput.addEventListener("change", () => {
   }
 });
 
-epfInput.addEventListener("change", () => {
-  let n = Number(epfInput.value);
+ipfInput.addEventListener("change", () => {
+  let n = Number(ipfInput.value);
   if (Number.isNaN(n) || !Number.isInteger(n)) {
-    epfInput.value = epochsPerFrame;
+    ipfInput.value = iterationsPerFrame;
   }
   else {
-    epochsPerFrame = n;
+    iterationsPerFrame = n;
   }
 });
 
