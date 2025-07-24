@@ -45,7 +45,7 @@ function canvasYToPlane(y) {
   return yCenter - yScale * (y - height / 2) / height;
 }
 
-var xScale = 2, yScale = 2, xCenter = 0, yCenter = 0;
+var xScale = 1, yScale = 1, xCenter = 0.5, yCenter = 0.5;
 var points = [];
 
 var nnFuncRes = 2;
@@ -91,6 +91,7 @@ var agent = {
   },
 
   learn() {
+    this.nn.startIteration();
     for (let p of points) {
       this.nn.feedForward([p[0], p[1]]);
       this.nn.backpropagate([p[2]]);
