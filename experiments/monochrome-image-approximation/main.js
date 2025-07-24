@@ -30,6 +30,23 @@ function rgbToGrayscale(r, g, b) {
   return 0.299 * r + 0.587 * g + 0.114 * b;
 }
 
+// Transforms a 4wh Uint8ClampedArray from an image data object
+// to a wh array of grayscale values between 0 and 255.
+function imgDataToGrayscale(data) {
+  let res = [];
+  let l = data.length;
+  for (let i = 0; i < l; i += 4) {
+    res.push(rgbToGrayscale(data[i], data[i + 1], data[i + 2]));
+  }
+  return res;
+}
+
+// Normalize color values to the range [0, 1]
+// This will be used to encode data for the neural network
+function normalizeColorValues(vals) {
+  return vals.map((x) => x / 255);
+}
+
 
 function enableInput(ele)  {
   ele.removeAttribute("disabled");
@@ -171,7 +188,7 @@ var agent = {
 
   initNetwork(hiddenLayers, af) {
     this.nn = new NN({
-      layerSizes: [2].concat(hiddenLayers).concat([3]),
+      layerSizes: [2].concat(hiddenLayers).concat([1]),
       activationFunctions: [af, NN.SIGMOID],
       wInit: {
         method: NN.RANDOM,
@@ -214,15 +231,8 @@ imageInput.addEventListener("change", (event) => {
       imgFileHeight = img.height;
       updateCanvasDim();
 
-      console.log(img);
-      //mainImg = img;
-
-      //imgFileWidth = mainImg.width;
-      //imgFileHeight = mainImg.height;
-
-      //updateCanvasSizes(canvasSize, imgFileWidth, imgFileHeight);
       targetCtx.drawImage(img, 0, 0, width, height);
-      //mainImgData = ctx.getImageData(0, 0, width, height).data;
+      targetImgData = targetCtx.getImageData(0, 0, width, height).data;
     };
 
     img.src = fr.result;
