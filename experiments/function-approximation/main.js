@@ -121,7 +121,7 @@ function formatHiddenLayers(layers) {
 function parseHiddenLayersString(str) {
   let nums = str.split(",").map((x) => Number(x.trim()));
   for (let n of nums) {
-    if (Number.isNaN(n) || !Number.isInteger(n)) {
+    if (Number.isNaN(n) || !Number.isInteger(n) || n <= 0) {
       return false;
     }
   }
@@ -209,7 +209,7 @@ learningRateInput.addEventListener("change", () => {
 
 epfInput.addEventListener("change", () => {
   let n = Number(epfInput.value);
-  if (Number.isNaN(n) || !Number.isInteger(n)) {
+  if (Number.isNaN(n) || !Number.isInteger(n) || n <= 0) {
     epfInput.value = epochsPerFrame;
   }
   else {
