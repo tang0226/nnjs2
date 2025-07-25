@@ -173,130 +173,123 @@ function updateActivationFunction() {
 }
 
 
-var hiddenLayers = parseHiddenLayersString(hiddenLayersInput.value);
 var activationFunction;
 updateActivationFunction();
 
-var batchSize = Number(batchSizeInput.value);
+var hiddenLayers = parseHiddenLayersString(hiddenLayersInput.value),
+  batchSize = Number(batchSizeInput.value),
+  isTraining = false,
+  isRendering = false,
+  learningRate = Number(learningRateInput.value),
+  renderWorkers = [],
+  renderWorkerCount = 0,
+  renderChunks = [],
+  renderChunksDone = 0;
 
-var agent = {
-  isTraining: false,
-  isRendering: false,
-  learningRate: Number(learningRateInput.value),
+var nn;
+function initNetwork(hiddenLayers, af) {
+  nn = new NN({
+    layerSizes: [2].concat(hiddenLayers).concat([1]),
+    activationFunctions: [af, NN.SIGMOID],
+    wInit: {
+      method: NN.RANDOM,
+      range: 0.5,
+    },
+    bInit: {
+      method: NN.RANDOM,
+      range: 0.5,
+    },
+  });
+}
 
-  renderWorkers: [],
-  renderWorkerCount: 0,
+function createRenderWorker() {
+  let worker = new Worker("render.js");
+  // When the worker is done, draw its data to the correct
+  // position on the canvas
+  worker.onmessage = function(event) {
+    let data = event.data;
+    if (data.type == "done") {
+      console.log("worker done: ", data.chunkI, data.y);
+      renderChunksDone++;
+      renderChunks[data.chunkI] = data.imgDataArr;
 
-  renderChunks: [],
-  renderChunksDone: 0,
+      // If the render is done, draw the image and finish the render
+      if (renderChunksDone == renderWorkerCount) {
+        // Combine all render chunks into one data array
+        let cumImgDataArr = new Uint8ClampedArray(renderChunks.reduce((acc, curr) => [...acc, ...curr], []));
+        ctx.putImageData(new ImageData(cumImgDataArr, width, height), 0, 0);
 
-  initNetwork(hiddenLayers, af) {
-    this.nn = new NN({
-      layerSizes: [2].concat(hiddenLayers).concat([1]),
-      activationFunctions: [af, NN.SIGMOID],
-      wInit: {
-        method: NN.RANDOM,
-        range: 0.5,
-      },
-      bInit: {
-        method: NN.RANDOM,
-        range: 0.5,
-      },
-    });
-  },
-
-  createRenderWorker() {
-    let worker = new Worker("render.js");
-    // When the worker is done, draw its data to the correct
-    // position on the canvas
-    worker.onmessage = function(event) {
-      let data = event.data;
-      if (data.type == "done") {
-        console.log("worker done: ", data.chunkI, data.y);
-        this.renderChunksDone++;
-        this.renderChunks[data.chunkI] = data.imgDataArr;
-
-        // If the render is done, draw the image and finish the render
-        if (this.renderChunksDone == this.renderWorkerCount) {
-          // Combine all render chunks into one data array
-          let cumImgDataArr = new Uint8ClampedArray(this.renderChunks.reduce((acc, curr) => [...acc, ...curr], []));
-          ctx.putImageData(new ImageData(cumImgDataArr, width, height), 0, 0);
-
-          this.renderChunksDone = 0;
-          this.isRendering = false;
-          console.log(performance.now() - this.renderStartTime);
-        }
-      }
-    }.bind(this);
-
-    // Send the current network to the worker so it can render when prompted
-    worker.postMessage({
-      type: "nn",
-      nn: this.nn.serialize(),
-    });
-
-    return worker;
-  },
-
-  initWorkers() {
-
-  },
-
-  initRenderWorkers(n) {
-    this.renderWorkers = [];
-    this.renderWorkerCount = n;
-    for (let i = 0; i < n; i++) {
-      this.renderWorkers.push(this.createRenderWorker());
-    }
-  },
-
-  draw() {
-    if (!this.isRendering) {
-      this.isRendering = true;
-      this.renderStartTime = performance.now();
-
-      this.renderChunksDone = 0;
-      this.renderChunks = new Array(this.renderWorkerCount);
-
-      let baseChunkHeight = Math.floor(height / this.renderWorkerCount);
-      let yStart = 0;
-      for (let i = 0; i < this.renderWorkerCount; i++) {
-        let worker = this.renderWorkers[i];
-        let chunkHeight = baseChunkHeight + Number(height % baseChunkHeight > i);
-        
-        worker.postMessage({
-          type: "render",
-          yStart: yStart,
-          chunkHeight: chunkHeight,
-          chunkI: i,
-          width: width,
-          height: height
-        });
-
-        yStart += chunkHeight;
+        renderChunksDone = 0;
+        isRendering = false;
+        console.log(performance.now() - renderStartTime);
       }
     }
-  },
+  };
 
-  learn() {
+  // Send the current network to the worker so it can render when prompted
+  worker.postMessage({
+    type: "nn",
+    nn: nn.serialize(),
+  });
 
+  return worker;
+}
+
+function initWorkers() {
+
+}
+
+function initRenderWorkers(n) {
+  renderWorkers = [];
+  renderWorkerCount = n;
+  for (let i = 0; i < n; i++) {
+    renderWorkers.push(createRenderWorker());
   }
 }
-agent.initNetwork(hiddenLayers, activationFunction);
-agent.initRenderWorkers(Number(renderWorkersInput.value));
-agent.draw();
+
+function draw() {
+  ctx.clearRect(0, 0, width, height);
+  if (!isRendering) {
+    isRendering = true;
+    renderStartTime = performance.now();
+
+    renderChunksDone = 0;
+    renderChunks = new Array(renderWorkerCount);
+
+    let baseChunkHeight = Math.floor(height / renderWorkerCount);
+    let yStart = 0;
+    for (let i = 0; i < renderWorkerCount; i++) {
+      let worker = renderWorkers[i];
+      let chunkHeight = baseChunkHeight + Number(height % baseChunkHeight > i);
+      
+      worker.postMessage({
+        type: "render",
+        yStart: yStart,
+        chunkHeight: chunkHeight,
+        chunkI: i,
+        width: width,
+        height: height
+      });
+
+      yStart += chunkHeight;
+    }
+  }
+
+}
+
+function learn() {
+
+}
+
+initNetwork(hiddenLayers, activationFunction);
+initRenderWorkers(Number(renderWorkersInput.value));
+draw();
 
 
 var iteration = 0;
 var iterationsPerFrame = Number(ipfInput.value);
 
 //disableInput(stopButton);
-
-
-function draw() {
-  ctx.clearRect(0, 0, width, height);
-  agent.draw();
-}
 
 
 imageInput.addEventListener("change", (event) => {
@@ -343,24 +336,24 @@ canvasSizeInput.addEventListener("change", () => {
 
 renderWorkersInput.addEventListener("change", function() {
   let newCount = Number(renderWorkersInput.value);
-  let oldCount = agent.renderWorkerCount;
+  let oldCount = renderWorkerCount;
   let diff = newCount - oldCount;
-  agent.renderWorkerCount = newCount;
+  renderWorkerCount = newCount;
   if (diff > 0) {
     // Add new workers
     for (let i = 0; i < diff; i++) {
-      agent.renderWorkers.push(agent.createRenderWorker());
+      renderWorkers.push(createRenderWorker());
     }
   }
   if (diff < 0) {
     // Delete workers
     for (let i = 0; i < Math.abs(diff); i++) {
-      agent.renderWorkers[oldCount - i - 1].terminate();
+      renderWorkers[oldCount - i - 1].terminate();
     }
-    agent.renderWorkers = agent.renderWorkers.slice(0, newCount);
+    renderWorkers = renderWorkers.slice(0, newCount);
   }
 
-  console.log(agent.renderWorkers);
+  console.log(renderWorkers);
 });
 
 hiddenLayersInput.addEventListener("change", () => {
@@ -368,7 +361,7 @@ hiddenLayersInput.addEventListener("change", () => {
   if (layers) {
     // update the layers and reset the agent
     hiddenLayers = layers;
-    agent.initNetwork(hiddenLayers, activationFunction);
+    initNetwork(hiddenLayers, activationFunction);
     iteration = 0;
   }
   else {
@@ -379,17 +372,17 @@ hiddenLayersInput.addEventListener("change", () => {
 activationFunctionInput.addEventListener("change", () => {
   // Update the af and reset the agent
   updateActivationFunction();
-  agent.initNetwork(hiddenLayers, activationFunction);
+  initNetwork(hiddenLayers, activationFunction);
   iteration = 0;
 });
 
 learningRateInput.addEventListener("change", () => {
   let n = Number(learningRateInput.value);
   if (Number.isNaN(n)) {
-    learningRateInput.value = agent.learningRate;
+    learningRateInput.value = learningRate;
   }
   else {
-    agent.learningRate = n;
+    learningRate = n;
   }
 });
 
@@ -416,7 +409,7 @@ ipfInput.addEventListener("change", () => {
 });
 
 startButton.addEventListener("click", () => {
-  agent.isTraining = true;
+  isTraining = true;
   /*disableInput(startButton);
   enableInput(stopButton);
   coreInputs.forEach((input) => {disableInput(input)});*/
@@ -426,7 +419,7 @@ startButton.addEventListener("click", () => {
 });
 
 stopButton.addEventListener("click", () => {
-  agent.isTraining = false;
+  isTraining = false;
   /*disableInput(stopButton);
   enableInput(startButton);
   coreInputs.forEach((input) => {enableInput(input)});*/
