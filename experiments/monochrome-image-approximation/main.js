@@ -76,6 +76,7 @@ const renderWorkersInput = document.getElementById("render-workers");
 const activationFunctionInput = document.getElementById("activation-function");
 const hiddenLayersInput = document.getElementById("hidden-layers");
 const learningRateInput = document.getElementById("learning-rate");
+const batchSizeInput = document.getElementById("batch-size-input");
 const ipfInput = document.getElementById("ipf-input");
 
 // Hyperparameters that cannot be changed during training
@@ -91,6 +92,7 @@ canvasSizeInput.value = "200";
 
 hiddenLayersInput.value = "40, 20";
 learningRateInput.value = "0.2";
+batchSizeInput.value = "64";
 ipfInput.value = "1";
 
 var width, height;
@@ -192,6 +194,8 @@ function updateActivationFunction() {
 var hiddenLayers = parseHiddenLayersString(hiddenLayersInput.value);
 var activationFunction;
 updateActivationFunction();
+
+var batchSize = Number(batchSizeInput.value);
 
 var agent = {
   isTraining: false,
@@ -379,9 +383,21 @@ learningRateInput.addEventListener("change", () => {
   }
 });
 
+
+batchSizeInput.addEventListener("change", () => {
+  let n = Number(batchSizeInput.value);
+  if (Number.isNaN(n) || !Number.isInteger(n) || n <= 0) {
+    batchSizeInput.value = batchSize;
+  }
+  else {
+    batchSize = n;
+  }
+});
+
+
 ipfInput.addEventListener("change", () => {
   let n = Number(ipfInput.value);
-  if (Number.isNaN(n) || !Number.isInteger(n)) {
+  if (Number.isNaN(n) || !Number.isInteger(n) || n <= 0) {
     ipfInput.value = iterationsPerFrame;
   }
   else {
