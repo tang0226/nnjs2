@@ -1,6 +1,6 @@
 importScripts("../../nn.js");
 
-var nn;
+var nn, targetData;
 
 this.onmessage = function(event) {
   let data = event.data;
@@ -9,6 +9,10 @@ this.onmessage = function(event) {
     case "nn":
       // Create a full NN instance from the serialized network passed
       nn = new NN({ nn: data.nn });
+      break;
+
+    case "targetData":
+      targetData = data.targetData;
       break;
 
 

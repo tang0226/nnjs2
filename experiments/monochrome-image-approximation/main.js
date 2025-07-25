@@ -15,13 +15,13 @@ Learning worker(s)
 
 
 Tasks:
-1. Run some number of iterations, noting the parameter deltas
+1. Run some number of batches, noting the parameter deltas
 2. Apply the parameter deltas and draw the image (using requestAnimationFrame with putImageData)
 3. repeat
 
 
 Batching options:
-1. Full-batch (run through every point in the training dataset, then end the iteration and apply the average derivative)
+1. Full-batch (run through every point in the training dataset, then end the batch and apply the average derivative)
 2. Stochastic  / mini-batch: more frequent updates using random sampling and smaller batch sizes
 
 */
@@ -77,7 +77,7 @@ const activationFunctionInput = document.getElementById("activation-function");
 const hiddenLayersInput = document.getElementById("hidden-layers");
 const learningRateInput = document.getElementById("learning-rate");
 const batchSizeInput = document.getElementById("batch-size-input");
-const ipfInput = document.getElementById("ipf-input");
+const bpfInput = document.getElementById("bpf-input");
 
 // Hyperparameters that cannot be changed during training
 const coreInputs = [
@@ -91,11 +91,13 @@ const coreInputs = [
 canvasSizeInput.value = "200";
 
 renderWorkersInput.value = 4;
+trainingWorkersInput.value = 4;
 
-hiddenLayersInput.value = "40, 20";
-learningRateInput.value = "0.2";
-batchSizeInput.value = "64";
-ipfInput.value = "1";
+activationFunctionInput.value = "relu";
+hiddenLayersInput.value = "150, 50";
+learningRateInput.value = "0.01";
+batchSizeInput.value = "1024";
+bpfInput.value = "1";
 
 var width, height;
 
@@ -126,10 +128,10 @@ var targetImg, targetImgData, targetNNOutput;
 function updateCanvasDim() {
   let ar = imgFileWidth / imgFileHeight;
   if (ar > 1) {
-    setCanvasDim(Math.round(canvasSize / ar), canvasSize);
+    setCanvasDim(canvasSize, Math.round(canvasSize / ar));
   }
   else {
-    setCanvasDim(canvasSize, Math.round(canvasSize / ar));
+    setCanvasDim(Math.round(canvasSize * ar), canvasSize);
   }
 }
 
@@ -139,6 +141,14 @@ function updateTargetImg() {
     targetCtx.drawImage(targetImg, 0, 0, width, height);
     targetImgData = targetCtx.getImageData(0, 0, width, height).data;
     targetNNOutput = normalizeColorValues(imgDataToGrayscale(targetImgData));
+
+    // Send the data to the workers
+    for (let w of renderWorkers.concat(trainingWorkers)) {
+      w.postMessage({
+        type: "targetData",
+        targetData: targetNNOutput,
+      });
+    }
 }
 
 
@@ -178,13 +188,20 @@ updateActivationFunction();
 
 var hiddenLayers = parseHiddenLayersString(hiddenLayersInput.value),
   batchSize = Number(batchSizeInput.value),
-  isTraining = false,
+  isTraining = true,
+  batchInProgress = false,
   isRendering = false,
   learningRate = Number(learningRateInput.value),
+  batch = 0,
+  batchesPerFrame = Number(bpfInput.value),
+  trainingWorkers = [],
+  trainingWorkerCount = 0,
+  trainingParameterTotals = {},
+  trainingWorkersDone = 0,
   renderWorkers = [],
   renderWorkerCount = 0,
   renderChunks = [],
-  renderChunksDone = 0;
+  renderWorkersDone = 0;
 
 var nn;
 function initNetwork(hiddenLayers, af) {
@@ -209,19 +226,17 @@ function createRenderWorker() {
   worker.onmessage = function(event) {
     let data = event.data;
     if (data.type == "done") {
-      console.log("worker done: ", data.chunkI, data.y);
-      renderChunksDone++;
+      renderWorkersDone++;
       renderChunks[data.chunkI] = data.imgDataArr;
 
       // If the render is done, draw the image and finish the render
-      if (renderChunksDone == renderWorkerCount) {
+      if (renderWorkersDone == renderWorkerCount) {
         // Combine all render chunks into one data array
         let cumImgDataArr = new Uint8ClampedArray(renderChunks.reduce((acc, curr) => [...acc, ...curr], []));
+        ctx.clearRect(0, 0, width, height);
         ctx.putImageData(new ImageData(cumImgDataArr, width, height), 0, 0);
 
-        renderChunksDone = 0;
         isRendering = false;
-        console.log(performance.now() - renderStartTime);
       }
     }
   };
@@ -235,8 +250,68 @@ function createRenderWorker() {
   return worker;
 }
 
-function initWorkers() {
+function createTrainingWorker() {
+  let worker = new Worker("training.js");
 
+  worker.onmessage = function(event) {
+    let data = event.data;
+    if (data.type == "done") {
+      trainingWorkersDone++;
+
+      // Check if the parameter totals exist yet; if so, add to them
+      if (Object.keys(trainingParameterTotals).length) {
+        trainingParameterTotals = {
+          w: NN.add3d(trainingParameterTotals.w, data.gradientTotals.w),
+          b: NN.add2d(trainingParameterTotals.b, data.gradientTotals.b),
+        };
+      }
+      else {
+        // Otherwise, initialize them
+        trainingParameterTotals = {
+          w: data.gradientTotals.w,
+          b: data.gradientTotals.b,
+        };
+      }
+
+      // If the batch is done, apply changes
+      if (trainingWorkersDone == trainingWorkerCount) {
+        // Apply the training parameter totals, averaged based on LR and batch size
+        nn.applyChanges(trainingParameterTotals, -learningRate / batchSize);
+
+        // Send new parameters to all workers:
+        for (let w of renderWorkers.concat(trainingWorkers)) {
+          w.postMessage({
+            type: "weights",
+            w: nn.w,
+          });
+
+          w.postMessage({
+            type: "biases",
+            b: nn.b,
+          });
+        }
+
+        // Attempt to draw the frame;
+        // Will only message render workers if a render is not already in progress (which will happen for small batch sizes)
+        draw();
+
+        batchInProgress = false;
+        console.log("batch done!");
+        if (isTraining) {
+          setTimeout(train, 0);
+        }
+      }
+
+    }
+  }
+
+  // Send the current network to the worker so it can train when prompted
+  worker.postMessage({
+    type: "nn",
+    nn: nn.serialize(),
+  });
+
+  return worker;
 }
 
 function initRenderWorkers(n) {
@@ -247,13 +322,25 @@ function initRenderWorkers(n) {
   }
 }
 
+function initTrainingWorkers(n) {
+  trainingWorkers = [];
+  trainingWorkerCount = n;
+  for (let i = 0; i < n; i++) {
+    trainingWorkers.push(createTrainingWorker());
+  }
+}
+
+
 function draw() {
-  ctx.clearRect(0, 0, width, height);
+  if (!targetImgData) {
+    return false;
+  }
   if (!isRendering) {
     isRendering = true;
+
     renderStartTime = performance.now();
 
-    renderChunksDone = 0;
+    renderWorkersDone = 0;
     renderChunks = new Array(renderWorkerCount);
 
     let baseChunkHeight = Math.floor(height / renderWorkerCount);
@@ -277,17 +364,33 @@ function draw() {
 
 }
 
-function learn() {
+// Perform one batch of training
+function train() {
+  if (!targetImgData) {
+    return false;
+  }
+  if (!batchInProgress) {
+    trainingWorkersDone = 0;
+    batchInProgress = true;
 
+    let baseTrialsPerWorker = Math.floor(batchSize / trainingWorkerCount);
+
+    for (let i = 0; i < trainingWorkerCount; i++) {
+      let worker = trainingWorkers[i];
+      worker.postMessage({
+        type: "train",
+        trials: baseTrialsPerWorker + Number(batchSize % trainingWorkerCount > i),
+        width: width,
+        height: height,
+      });
+    }
+  }
 }
 
 initNetwork(hiddenLayers, activationFunction);
 initRenderWorkers(Number(renderWorkersInput.value));
+initTrainingWorkers(Number(trainingWorkersInput.value));
 draw();
-
-
-var iteration = 0;
-var iterationsPerFrame = Number(ipfInput.value);
 
 //disableInput(stopButton);
 
@@ -352,8 +455,6 @@ renderWorkersInput.addEventListener("change", function() {
     }
     renderWorkers = renderWorkers.slice(0, newCount);
   }
-
-  console.log(renderWorkers);
 });
 
 hiddenLayersInput.addEventListener("change", () => {
@@ -362,7 +463,7 @@ hiddenLayersInput.addEventListener("change", () => {
     // update the layers and reset the agent
     hiddenLayers = layers;
     initNetwork(hiddenLayers, activationFunction);
-    iteration = 0;
+    batch = 0;
   }
   else {
     hiddenLayersInput.value = formatHiddenLayers(hiddenLayers);
@@ -373,7 +474,7 @@ activationFunctionInput.addEventListener("change", () => {
   // Update the af and reset the agent
   updateActivationFunction();
   initNetwork(hiddenLayers, activationFunction);
-  iteration = 0;
+  batch = 0;
 });
 
 learningRateInput.addEventListener("change", () => {
@@ -398,13 +499,13 @@ batchSizeInput.addEventListener("change", () => {
 });
 
 
-ipfInput.addEventListener("change", () => {
-  let n = Number(ipfInput.value);
+bpfInput.addEventListener("change", () => {
+  let n = Number(bpfInput.value);
   if (Number.isNaN(n) || !Number.isInteger(n) || n <= 0) {
-    ipfInput.value = iterationsPerFrame;
+    bpfInput.value = batchesPerFrame;
   }
   else {
-    iterationsPerFrame = n;
+    batchesPerFrame = n;
   }
 });
 
