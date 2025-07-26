@@ -23,7 +23,7 @@ this.onmessage = function(event) {
       break;
 
     case "train":
-      let { trials, width, height } = data;
+      let { trials, batchSize, width, height } = data;
       nn.startIteration();
       for (let i = 0; i < trials; i++) {
         // sample a random point on the canvas
@@ -38,7 +38,9 @@ this.onmessage = function(event) {
         gradientTotals: {
           w: nn.dwTotal,
           b: nn.dbTotal,
-        }
+        },
+        trials: trials,
+        batchSize: batchSize,
       });
   }
 };

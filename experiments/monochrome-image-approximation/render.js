@@ -47,6 +47,8 @@ this.onmessage = function(event) {
         imgDataArr: imgDataArr,
         y: yStart,
         chunkI: chunkI,
+        width: width,
+        height: height,
       });
 
       break;

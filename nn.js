@@ -21,7 +21,7 @@ class NN {
           case "relu":
             this.af.push(NN.RELU);
             break;
-          case "leaky relu":
+          case "leaky-relu":
             this.af.push(NN.LEAKY_RELU(af.alpha));
             break;
           case "tanh":
@@ -425,7 +425,7 @@ class NN {
       dFunc(x) {
         return x > 0 ? 1 : this.alpha;
       },
-      name: "leaky relu"
+      name: "leaky-relu"
     };
   };
 

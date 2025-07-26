@@ -93,7 +93,7 @@ canvasSizeInput.value = "200";
 renderWorkersInput.value = 4;
 trainingWorkersInput.value = 4;
 
-activationFunctionInput.value = "relu";
+activationFunctionInput.value = "leaky-relu";
 hiddenLayersInput.value = "150, 50";
 learningRateInput.value = "0.01";
 batchSizeInput.value = "1024";
@@ -143,12 +143,10 @@ function updateTargetImg() {
     targetNNOutput = normalizeColorValues(imgDataToGrayscale(targetImgData));
 
     // Send the data to the workers
-    for (let w of renderWorkers.concat(trainingWorkers)) {
-      w.postMessage({
-        type: "targetData",
-        targetData: targetNNOutput,
-      });
-    }
+    messageAllWorkers({
+      type: "targetData",
+      targetData: targetNNOutput,
+    });
 }
 
 
@@ -172,6 +170,9 @@ function updateActivationFunction() {
   switch(val) {
     case "relu":
       activationFunction = NN.RELU;
+      break;
+    case "leaky-relu":
+      activationFunction = NN.LEAKY_RELU(0.3);
       break;
     case "sigmoid":
       activationFunction = NN.SIGMOID;
@@ -210,11 +211,11 @@ function initNetwork(hiddenLayers, af) {
     activationFunctions: [af, NN.SIGMOID],
     wInit: {
       method: NN.RANDOM,
-      range: 0.5,
+      range: 0.1,
     },
     bInit: {
       method: NN.RANDOM,
-      range: 0.5,
+      range: 0.1,
     },
   });
 }
@@ -231,11 +232,13 @@ function createRenderWorker() {
 
       // If the render is done, draw the image and finish the render
       if (renderWorkersDone == renderWorkerCount) {
-        // Combine all render chunks into one data array
-        let cumImgDataArr = new Uint8ClampedArray(renderChunks.reduce((acc, curr) => [...acc, ...curr], []));
-        ctx.clearRect(0, 0, width, height);
-        ctx.putImageData(new ImageData(cumImgDataArr, width, height), 0, 0);
-
+        // only draw if the canvas dimensions were not changed during the render
+        if (width == data.width && height == data.height) {
+          // Combine all render chunks into one data array
+          let cumImgDataArr = new Uint8ClampedArray(renderChunks.reduce((acc, curr) => [...acc, ...curr], []));
+          ctx.clearRect(0, 0, width, height);
+          ctx.putImageData(new ImageData(cumImgDataArr, width, height), 0, 0);
+        }
         isRendering = false;
       }
     }
@@ -276,20 +279,17 @@ function createTrainingWorker() {
       // If the batch is done, apply changes
       if (trainingWorkersDone == trainingWorkerCount) {
         // Apply the training parameter totals, averaged based on LR and batch size
-        nn.applyChanges(trainingParameterTotals, -learningRate / batchSize);
+        nn.applyChanges(trainingParameterTotals, -learningRate / data.batchSize);
 
         // Send new parameters to all workers:
-        for (let w of renderWorkers.concat(trainingWorkers)) {
-          w.postMessage({
-            type: "weights",
-            w: nn.w,
-          });
-
-          w.postMessage({
-            type: "biases",
-            b: nn.b,
-          });
-        }
+        messageAllWorkers({
+          type: "weights",
+          w: nn.w,
+        });
+        messageAllWorkers({
+          type: "biases",
+          b: nn.b,
+        });
 
         // Attempt to draw the frame;
         // Will only message render workers if a render is not already in progress (which will happen for small batch sizes)
@@ -330,6 +330,11 @@ function initTrainingWorkers(n) {
   }
 }
 
+function messageAllWorkers(msg) {
+  for (let w of renderWorkers.concat(trainingWorkers)) {
+    w.postMessage(msg);
+  }
+}
 
 function draw() {
   if (!targetImgData) {
@@ -379,6 +384,7 @@ function train() {
       let worker = trainingWorkers[i];
       worker.postMessage({
         type: "train",
+        batchSize: batchSize,
         trials: baseTrialsPerWorker + Number(batchSize % trainingWorkerCount > i),
         width: width,
         height: height,
@@ -390,7 +396,6 @@ function train() {
 initNetwork(hiddenLayers, activationFunction);
 initRenderWorkers(Number(renderWorkersInput.value));
 initTrainingWorkers(Number(trainingWorkersInput.value));
-draw();
 
 //disableInput(stopButton);
 
@@ -437,6 +442,27 @@ canvasSizeInput.addEventListener("change", () => {
   }
 });
 
+trainingWorkersInput.addEventListener("change", function() {
+  let newCount = Number(trainingWorkersInput.value);
+  let oldCount = trainingWorkerCount;
+  let diff = newCount - oldCount;
+  trainingWorkerCount = newCount;
+  if (diff > 0) {
+    // Add new workers
+    for (let i = 0; i < diff; i++) {
+      trainingWorkers.push(createRenderWorker());
+    }
+  }
+  if (diff < 0) {
+    // Delete workers
+    for (let i = 0; i < Math.abs(diff); i++) {
+      trainingWorkers[oldCount - i - 1].terminate();
+    }
+    trainingWorkers = trainingWorkers.slice(0, newCount);
+  }
+});
+
+
 renderWorkersInput.addEventListener("change", function() {
   let newCount = Number(renderWorkersInput.value);
   let oldCount = renderWorkerCount;
@@ -463,6 +489,10 @@ hiddenLayersInput.addEventListener("change", () => {
     // update the layers and reset the agent
     hiddenLayers = layers;
     initNetwork(hiddenLayers, activationFunction);
+    messageAllWorkers({
+      type: "nn",
+      nn: nn.serialize(),
+    });
     batch = 0;
   }
   else {
@@ -474,6 +504,11 @@ activationFunctionInput.addEventListener("change", () => {
   // Update the af and reset the agent
   updateActivationFunction();
   initNetwork(hiddenLayers, activationFunction);
+  // Send the new network to all workers
+  messageAllWorkers({
+    type: "nn",
+    nn: nn.serialize(),
+  });
   batch = 0;
 });
 
@@ -510,24 +545,32 @@ bpfInput.addEventListener("change", () => {
 });
 
 startButton.addEventListener("click", () => {
-  isTraining = true;
-  /*disableInput(startButton);
-  enableInput(stopButton);
-  coreInputs.forEach((input) => {disableInput(input)});*/
+  if (targetImgData) {
+    isTraining = true;
+    disableInput(startButton);
+    enableInput(stopButton);
+    coreInputs.forEach((input) => {disableInput(input)});
 
-  // Temp
-  draw();
+    train();
+  }
+  else {
+    alert("Please select an image file");
+  }
 });
 
 stopButton.addEventListener("click", () => {
   isTraining = false;
-  /*disableInput(stopButton);
+  disableInput(stopButton);
   enableInput(startButton);
-  coreInputs.forEach((input) => {enableInput(input)});*/
+  coreInputs.forEach((input) => {enableInput(input)});
 });
 
 resetNetworkButton.addEventListener("click", () => {
-
+  initNetwork(hiddenLayers, activationFunction);
+  messageAllWorkers({
+    type: "nn",
+    nn: nn.serialize(),
+  });
 });
 
 var keys = {};
